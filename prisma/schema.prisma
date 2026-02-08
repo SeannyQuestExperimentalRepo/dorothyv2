@@ -217,10 +217,28 @@ model NCAAMBGame {
   tournamentRegion String?       // "East", "West", "South", "Midwest"
   isNIT            Boolean       @default(false)
   isConferenceTourney Boolean    @default(false)
+  // KenPom ratings (season-level for each team)
+  homeKenpomRank   Int?          // KenPom overall ranking
+  awayKenpomRank   Int?
+  homeAdjEM        Float?        // Adjusted efficiency margin
+  awayAdjEM        Float?
+  homeAdjOE        Float?        // Adjusted offensive efficiency
+  awayAdjOE        Float?
+  homeAdjDE        Float?        // Adjusted defensive efficiency
+  awayAdjDE        Float?
+  homeAdjTempo     Float?        // Adjusted tempo
+  awayAdjTempo     Float?
+  // FanMatch predictions (game-level)
+  fmHomePred       Float?        // Predicted home score
+  fmAwayPred       Float?        // Predicted away score
+  fmHomeWinProb    Float?        // Home win probability (0-100)
+  fmThrillScore    Float?        // KenPom thrill score
+  // Betting
   spread           Float?        // Negative = home favored
   overUnder        Float?
   spreadResult     SpreadResult?
   ouResult         OUResult?
+  overtimes        Int           @default(0)
   // NO weather fields — basketball is indoors
   source           String?
   createdAt        DateTime      @default(now())

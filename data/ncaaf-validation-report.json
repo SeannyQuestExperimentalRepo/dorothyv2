@@ -1,0 +1,165 @@
+[
+  {
+    "name": "No duplicate games",
+    "passed": false,
+    "details": "24 duplicates found",
+    "failures": [
+      "2006-12-27|Florida State Seminoles|UCLA Bruins",
+      "2006-12-29|South Carolina Gamecocks|Houston Cougars",
+      "2007-01-01|Penn State Nittany Lions|Tennessee Volunteers",
+      "2007-01-07|Southern Miss Golden Eagles|Ohio Bobcats",
+      "2007-12-21|FAU Owls|Memphis Tigers",
+      "2008-08-31|Colorado Buffaloes|Colorado State Rams",
+      "2009-01-01|Iowa Hawkeyes|South Carolina Gamecocks",
+      "2009-09-05|Kentucky Wildcats|Miami (OH) RedHawks",
+      "2009-09-19|Ohio State Buckeyes|Toledo Rockets",
+      "2009-12-26|USC Trojans|Boston College Eagles"
+    ]
+  },
+  {
+    "name": "Scores are non-negative",
+    "passed": true,
+    "details": "0 games with negative scores",
+    "failures": []
+  },
+  {
+    "name": "Score difference is correct (signed)",
+    "passed": true,
+    "details": "0 mismatches",
+    "failures": []
+  },
+  {
+    "name": "Winner matches higher score",
+    "passed": false,
+    "details": "142 mismatches",
+    "failures": [
+      "2005-09-01: Louisiana-Monroe Warhawks 23-27 Northwestern State, winner=null",
+      "2005-09-17: Stanford Cardinal 17-20 California-Davis, winner=null",
+      "2006-09-02: Colorado Buffaloes 10-19 Montana State, winner=null",
+      "2006-09-02: New Mexico Lobos 6-17 Portland State, winner=null",
+      "2006-09-02: Duke Blue Devils 0-13 Richmond, winner=null"
+    ]
+  },
+  {
+    "name": "Spread results calculated correctly",
+    "passed": true,
+    "details": "0 mismatches (0 games with spreads)",
+    "failures": []
+  },
+  {
+    "name": "O/U results calculated correctly",
+    "passed": true,
+    "details": "0 mismatches (0 games with O/U)",
+    "failures": []
+  },
+  {
+    "name": "Temperature range (-20°F to 130°F)",
+    "passed": true,
+    "details": "0 out of range (16283 games with temp)",
+    "failures": []
+  },
+  {
+    "name": "Wind range (0 to 80 mph)",
+    "passed": true,
+    "details": "0 out of range (16283 games with wind)",
+    "failures": []
+  },
+  {
+    "name": "Home and Away are different teams",
+    "passed": true,
+    "details": "0 same-team games",
+    "failures": []
+  },
+  {
+    "name": "FBS home teams have canonical names",
+    "passed": true,
+    "details": "0 FBS home games where canonical = SR name",
+    "failures": []
+  },
+  {
+    "name": "Bowl games have bowl names",
+    "passed": true,
+    "details": "0 bowl games without names",
+    "failures": []
+  },
+  {
+    "name": "Playoff games exist and are flagged",
+    "passed": true,
+    "details": "13 playoff/championship games",
+    "failures": [
+      "2006: BCS Championship (Glendale, AZ) (Florida vs Ohio State)",
+      "2007: BCS Championship (New Orleans, LA) (Louisiana State vs Ohio State)",
+      "2008: BCS Championship (Miami, FL) (Florida vs Oklahoma)",
+      "2009: BCS Championship (Pasadena, CA) (Alabama vs Texas)",
+      "2010: BCS Championship (Glendale, AZ) (Auburn vs Oregon)",
+      "2011: BCS Championship (New Orleans, LA) (Alabama vs Louisiana State)",
+      "2012: BCS Championship (Miami, FL) (Alabama vs Notre Dame)",
+      "2013: BCS Championship (Pasadena, CA) (Florida State vs Auburn)",
+      "2014: College Football Playoff National Championship (Arlington, TX) (Ohio State vs Oregon)",
+      "2015: College Football Playoff National Championship (Glendale, AZ) (Alabama vs Clemson)",
+      "2022: College Football Playoff National Championship (Georgia vs Texas Christian)",
+      "2023: College Football Playoff National Championship (Michigan vs Washington)",
+      "2024: College Football Playoff National Championship (Ohio State vs Notre Dame)"
+    ]
+  },
+  {
+    "name": "Rankings are in valid range (1-25)",
+    "passed": true,
+    "details": "0 invalid rankings",
+    "failures": []
+  },
+  {
+    "name": "All games have weather category",
+    "passed": true,
+    "details": "0 missing weather",
+    "failures": []
+  },
+  {
+    "name": "Season range is contiguous",
+    "passed": true,
+    "details": "2005-2024, 20 seasons (expected 20)",
+    "failures": []
+  },
+  {
+    "name": "Games per season is reasonable (400-1000)",
+    "passed": true,
+    "details": "0 seasons < 400, 0 seasons > 1000",
+    "failures": []
+  },
+  {
+    "name": "Conference game ratio is reasonable (50-70%)",
+    "passed": true,
+    "details": "9853/14735 = 66.9% of FBS-vs-FBS games",
+    "failures": []
+  },
+  {
+    "name": "Neutral site games exist",
+    "passed": true,
+    "details": "1092 neutral site games",
+    "failures": []
+  },
+  {
+    "name": "Bowl games are mostly neutral site",
+    "passed": false,
+    "details": "62 bowl games NOT marked neutral",
+    "failures": []
+  },
+  {
+    "name": "All weather categories are valid",
+    "passed": true,
+    "details": "0 invalid categories",
+    "failures": []
+  },
+  {
+    "name": "All game dates are valid",
+    "passed": true,
+    "details": "0 invalid dates",
+    "failures": []
+  },
+  {
+    "name": "2020 season reflects COVID reduction",
+    "passed": true,
+    "details": "2020 has 570 games (expected ~570 due to COVID)",
+    "failures": []
+  }
+]
