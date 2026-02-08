@@ -1,0 +1,43 @@
+{
+  "name": "trendline",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx}\""
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.2",
+    "@tanstack/react-query": "^5.90.20",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.563.0",
+    "next": "14.2.35",
+    "next-auth": "^5.0.0-beta.30",
+    "openai": "^6.18.0",
+    "prisma": "^6.19.2",
+    "react": "^18",
+    "react-dom": "^18",
+    "recharts": "^3.7.0",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss-animate": "^1.0.7",
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.33",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.35",
+    "eslint-config-prettier": "^10.1.8",
+    "postcss": "^8",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
