@@ -1,0 +1,1001 @@
+{
+  "meta": {
+    "generatedAt": "2026-02-08T21:35:59.108Z",
+    "inputFile": "ncaaf-games-final.json",
+    "totalGames": 14735,
+    "outdoorGames": 14377,
+    "domeGames": 358,
+    "seasons": "2005-2024",
+    "overallAvgTotal": 54.8,
+    "outdoorAvgTotal": 54.8,
+    "overallHomeWinPct": 61.6
+  },
+  "temperatureBands": [
+    {
+      "band": "<20",
+      "games": 49,
+      "homeWinPct": 81.6,
+      "avgTotal": 46.8,
+      "avgMargin": 7.7,
+      "avgTotalDelta": -8,
+      "overPct": 32.7
+    },
+    {
+      "band": "20-29",
+      "games": 205,
+      "homeWinPct": 73.7,
+      "avgTotal": 53.4,
+      "avgMargin": 8,
+      "avgTotalDelta": -1.4,
+      "overPct": 42.9
+    },
+    {
+      "band": "30-39",
+      "games": 720,
+      "homeWinPct": 68.3,
+      "avgTotal": 53.7,
+      "avgMargin": 6.4,
+      "avgTotalDelta": -1.1,
+      "overPct": 46.4
+    },
+    {
+      "band": "40-49",
+      "games": 1627,
+      "homeWinPct": 63.7,
+      "avgTotal": 54.5,
+      "avgMargin": 5.1,
+      "avgTotalDelta": -0.3,
+      "overPct": 47.7
+    },
+    {
+      "band": "50-59",
+      "games": 2653,
+      "homeWinPct": 59.7,
+      "avgTotal": 54.6,
+      "avgMargin": 4.2,
+      "avgTotalDelta": -0.2,
+      "overPct": 48.1
+    },
+    {
+      "band": "60-69",
+      "games": 3169,
+      "homeWinPct": 59.8,
+      "avgTotal": 54.9,
+      "avgMargin": 4.5,
+      "avgTotalDelta": 0.1,
+      "overPct": 48.5
+    },
+    {
+      "band": "70-79",
+      "games": 3425,
+      "homeWinPct": 61.7,
+      "avgTotal": 55.1,
+      "avgMargin": 5.8,
+      "avgTotalDelta": 0.3,
+      "overPct": 50.6
+    },
+    {
+      "band": "80-89",
+      "games": 2141,
+      "homeWinPct": 62.7,
+      "avgTotal": 55.3,
+      "avgMargin": 7.2,
+      "avgTotalDelta": 0.5,
+      "overPct": 50.1
+    },
+    {
+      "band": "90-99",
+      "games": 369,
+      "homeWinPct": 66.1,
+      "avgTotal": 55.2,
+      "avgMargin": 8.7,
+      "avgTotalDelta": 0.4,
+      "overPct": 50.7
+    },
+    {
+      "band": "100+",
+      "games": 19,
+      "homeWinPct": 89.5,
+      "avgTotal": 50.6,
+      "avgMargin": 21.8,
+      "avgTotalDelta": -4.2,
+      "overPct": 36.8
+    }
+  ],
+  "windSpeedBands": [
+    {
+      "band": "0-4",
+      "games": 4414,
+      "homeWinPct": 63.5,
+      "avgTotal": 55.4,
+      "avgMargin": 6.1,
+      "avgTotalDelta": 0.6,
+      "overPct": 50.7
+    },
+    {
+      "band": "5-9",
+      "games": 6528,
+      "homeWinPct": 61.9,
+      "avgTotal": 54.8,
+      "avgMargin": 5.6,
+      "avgTotalDelta": 0,
+      "overPct": 48.9
+    },
+    {
+      "band": "10-14",
+      "games": 2630,
+      "homeWinPct": 60.7,
+      "avgTotal": 54,
+      "avgMargin": 4.8,
+      "avgTotalDelta": -0.8,
+      "overPct": 46.6
+    },
+    {
+      "band": "15-19",
+      "games": 674,
+      "homeWinPct": 60.1,
+      "avgTotal": 53.5,
+      "avgMargin": 4,
+      "avgTotalDelta": -1.3,
+      "overPct": 46
+    },
+    {
+      "band": "20-24",
+      "games": 117,
+      "homeWinPct": 57.3,
+      "avgTotal": 51.7,
+      "avgMargin": 3.4,
+      "avgTotalDelta": -3.1,
+      "overPct": 42.7
+    },
+    {
+      "band": "25+",
+      "games": 14,
+      "homeWinPct": 50,
+      "avgTotal": 55.4,
+      "avgMargin": 0.1,
+      "avgTotalDelta": 0.6,
+      "overPct": 64.3
+    }
+  ],
+  "weatherCategories": [
+    {
+      "category": "CLEAR",
+      "games": 7166,
+      "homeWinPct": 61.7,
+      "avgTotal": 55.2,
+      "avgMargin": 5.3,
+      "avgTotalDelta": 0.4,
+      "overPct": 49.6,
+      "conferenceGamePct": 67.3,
+      "rankedMatchupHomeWinPct": 63.6,
+      "unrankedMatchupHomeWinPct": 60.7
+    },
+    {
+      "category": "CLOUDY",
+      "games": 5272,
+      "homeWinPct": 62.7,
+      "avgTotal": 54.8,
+      "avgMargin": 5.8,
+      "avgTotalDelta": 0,
+      "overPct": 49.1,
+      "conferenceGamePct": 66.5,
+      "rankedMatchupHomeWinPct": 66.1,
+      "unrankedMatchupHomeWinPct": 60.7
+    },
+    {
+      "category": "RAIN",
+      "games": 1718,
+      "homeWinPct": 61.2,
+      "avgTotal": 53.3,
+      "avgMargin": 5.5,
+      "avgTotalDelta": -1.5,
+      "overPct": 45.7,
+      "conferenceGamePct": 64.8,
+      "rankedMatchupHomeWinPct": 65.5,
+      "unrankedMatchupHomeWinPct": 58.7
+    },
+    {
+      "category": "SNOW",
+      "games": 120,
+      "homeWinPct": 69.2,
+      "avgTotal": 50.3,
+      "avgMargin": 9.6,
+      "avgTotalDelta": -4.5,
+      "overPct": 41.7,
+      "conferenceGamePct": 65,
+      "rankedMatchupHomeWinPct": 73.7,
+      "unrankedMatchupHomeWinPct": 65.1
+    },
+    {
+      "category": "WIND",
+      "games": 101,
+      "homeWinPct": 55.4,
+      "avgTotal": 52.4,
+      "avgMargin": 2.5,
+      "avgTotalDelta": -2.4,
+      "overPct": 46.5,
+      "conferenceGamePct": 80.2,
+      "rankedMatchupHomeWinPct": 54.3,
+      "unrankedMatchupHomeWinPct": 56.1
+    },
+    {
+      "category": "DOME",
+      "games": 358,
+      "homeWinPct": 44.1,
+      "avgTotal": 56.6,
+      "avgMargin": -3.9,
+      "avgTotalDelta": 1.8,
+      "overPct": 52.5,
+      "conferenceGamePct": 70.4,
+      "rankedMatchupHomeWinPct": 26.6,
+      "unrankedMatchupHomeWinPct": 48
+    }
+  ],
+  "extremeWeather": {
+    "freezing": {
+      "games": 111,
+      "homeWinPct": 73.9,
+      "avgTotal": 48.9,
+      "avgMargin": 6.5,
+      "avgTotalDelta": -5.9,
+      "overPct": 36,
+      "top5Highest": [
+        {
+          "gameDate": "2007-11-23",
+          "homeTeam": "Colorado",
+          "awayTeam": "Nebraska",
+          "homeScore": 65,
+          "awayScore": 51,
+          "total": 116,
+          "temperature": 22.5,
+          "windMph": 7.7,
+          "weatherCategory": "CLOUDY"
+        },
+        {
+          "gameDate": "2015-01-04",
+          "homeTeam": "Toledo",
+          "awayTeam": "Arkansas State",
+          "homeScore": 63,
+          "awayScore": 44,
+          "total": 107,
+          "temperature": 24.3,
+          "windMph": 18.1,
+          "weatherCategory": "CLOUDY"
+        },
+        {
+          "gameDate": "2013-11-23",
+          "homeTeam": "Colorado",
+          "awayTeam": "Southern California",
+          "homeScore": 29,
+          "awayScore": 47,
+          "total": 76,
+          "temperature": 19.4,
+          "windMph": 3.5,
+          "weatherCategory": "SNOW"
+        },
+        {
+          "gameDate": "2008-12-20",
+          "homeTeam": "Colorado State",
+          "awayTeam": "Fresno State",
+          "homeScore": 40,
+          "awayScore": 35,
+          "total": 75,
+          "temperature": 23.6,
+          "windMph": 13.6,
+          "weatherCategory": "CLOUDY"
+        },
+        {
+          "gameDate": "2017-12-27",
+          "homeTeam": "Purdue",
+          "awayTeam": "Arizona",
+          "homeScore": 38,
+          "awayScore": 35,
+          "total": 73,
+          "temperature": -0.8,
+          "windMph": 4.9,
+          "weatherCategory": "CLOUDY"
+        }
+      ],
+      "top5Lowest": [
+        {
+          "gameDate": "2018-11-14",
+          "homeTeam": "Northern Illinois",
+          "awayTeam": "Miami (OH)",
+          "homeScore": 7,
+          "awayScore": 13,
+          "total": 20,
+          "temperature": 24.2,
+          "windMph": 4.7,
+          "weatherCategory": "CLEAR"
+        },
+        {
+          "gameDate": "2024-11-29",
+          "homeTeam": "Iowa",
+          "awayTeam": "Nebraska",
+          "homeScore": 13,
+          "awayScore": 10,
+          "total": 23,
+          "temperature": 20.8,
+          "windMph": 8.8,
+          "weatherCategory": "CLEAR"
+        },
+        {
+          "gameDate": "2022-11-19",
+          "homeTeam": "Minnesota",
+          "awayTeam": "Iowa",
+          "homeScore": 10,
+          "awayScore": 13,
+          "total": 23,
+          "temperature": 16.2,
+          "windMph": 15.3,
+          "weatherCategory": "CLOUDY"
+        },
+        {
+          "gameDate": "2022-11-19",
+          "homeTeam": "Iowa State",
+          "awayTeam": "Texas Tech",
+          "homeScore": 10,
+          "awayScore": 14,
+          "total": 24,
+          "temperature": 18.9,
+          "windMph": 9.8,
+          "weatherCategory": "CLEAR"
+        },
+        {
+          "gameDate": "2021-12-28",
+          "homeTeam": "Minnesota",
+          "awayTeam": "West Virginia",
+          "homeScore": 18,
+          "awayScore": 6,
+          "total": 24,
+          "temperature": 18,
+          "windMph": 10.4,
+          "weatherCategory": "CLOUDY"
+        }
+      ]
+    },
+    "scorching": {
+      "games": 18,
+      "homeWinPct": 88.9,
+      "avgTotal": 50.2,
+      "avgMargin": 21.7,
+      "avgTotalDelta": -4.6,
+      "overPct": 33.3,
+      "top5Highest": [
+        {
+          "gameDate": "2005-09-01",
+          "homeTeam": "Arizona State",
+          "awayTeam": "Temple",
+          "homeScore": 63,
+          "awayScore": 16,
+          "total": 79,
+          "temperature": 103.7,
+          "windMph": 5.7,
+          "weatherCategory": "CLEAR"
+        },
+        {
+          "gameDate": "2019-09-07",
+          "homeTeam": "Baylor",
+          "awayTeam": "Texas-San Antonio",
+          "homeScore": 63,
+          "awayScore": 14,
+          "total": 77,
+          "temperature": 100.8,
+          "windMph": 8.8,
+          "weatherCategory": "CLEAR"
+        },
+        {
+          "gameDate": "2024-10-05",
+          "homeTeam": "Arizona State",
+          "awayTeam": "Kansas",
+          "homeScore": 35,
+          "awayScore": 31,
+          "total": 66,
+          "temperature": 102.2,
+          "windMph": 7.4,
+          "weatherCategory": "CLEAR"
+        },
+        {
+          "gameDate": "2011-09-24",
+          "homeTeam": "Arizona State",
+          "awayTeam": "Southern California",
+          "homeScore": 43,
+          "awayScore": 22,
+          "total": 65,
+          "temperature": 102,
+          "windMph": 3.2,
+          "weatherCategory": "CLEAR"
+        },
+        {
+          "gameDate": "2010-09-18",
+          "homeTeam": "Arizona",
+          "awayTeam": "Iowa",
+          "homeScore": 34,
+          "awayScore": 27,
+          "total": 61,
+          "temperature": 100.9,
+          "windMph": 4.3,
+          "weatherCategory": "CLEAR"
+        }
+      ],
+      "top5Lowest": [
+        {
+          "gameDate": "2013-08-31",
+          "homeTeam": "Oklahoma State",
+          "awayTeam": "Mississippi State",
+          "homeScore": 21,
+          "awayScore": 3,
+          "total": 24,
+          "temperature": 100.2,
+          "windMph": 4.5,
+          "weatherCategory": "CLEAR"
+        },
+        {
+          "gameDate": "2018-09-08",
+          "homeTeam": "Arizona State",
+          "awayTeam": "Michigan State",
+          "homeScore": 16,
+          "awayScore": 13,
+          "total": 29,
+          "temperature": 104.3,
+          "windMph": 5.6,
+          "weatherCategory": "CLEAR"
+        },
+        {
+          "gameDate": "2019-08-29",
+          "homeTeam": "Arizona State",
+          "awayTeam": "Kent State",
+          "homeScore": 30,
+          "awayScore": 7,
+          "total": 37,
+          "temperature": 101.2,
+          "windMph": 2.7,
+          "weatherCategory": "CLEAR"
+        },
+        {
+          "gameDate": "2006-09-02",
+          "homeTeam": "UCLA",
+          "awayTeam": "Utah",
+          "homeScore": 31,
+          "awayScore": 10,
+          "total": 41,
+          "temperature": 100.1,
+          "windMph": 6.3,
+          "weatherCategory": "CLEAR"
+        },
+        {
+          "gameDate": "2023-09-09",
+          "homeTeam": "Arizona State",
+          "awayTeam": "Oklahoma State",
+          "homeScore": 15,
+          "awayScore": 27,
+          "total": 42,
+          "temperature": 105.3,
+          "windMph": 10,
+          "weatherCategory": "CLEAR"
+        }
+      ]
+    },
+    "windy": {
+      "games": 126,
+      "homeWinPct": 56.3,
+      "avgTotal": 52.3,
+      "avgMargin": 3.2,
+      "avgTotalDelta": -2.5,
+      "overPct": 46,
+      "top5Highest": [
+        {
+          "gameDate": "2017-11-18",
+          "homeTeam": "Memphis",
+          "awayTeam": "Southern Methodist",
+          "homeScore": 66,
+          "awayScore": 45,
+          "total": 111,
+          "temperature": 71.1,
+          "windMph": 21.9,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2011-11-26",
+          "homeTeam": "Baylor",
+          "awayTeam": "Texas Tech",
+          "homeScore": 66,
+          "awayScore": 42,
+          "total": 108,
+          "temperature": 57.5,
+          "windMph": 22.1,
+          "weatherCategory": "WIND"
+        },
+        {
+          "gameDate": "2019-09-21",
+          "homeTeam": "Iowa State",
+          "awayTeam": "Louisiana-Monroe",
+          "homeScore": 72,
+          "awayScore": 20,
+          "total": 92,
+          "temperature": 75.7,
+          "windMph": 20.6,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2007-10-06",
+          "homeTeam": "Hawaii",
+          "awayTeam": "Utah State",
+          "homeScore": 52,
+          "awayScore": 37,
+          "total": 89,
+          "temperature": 78.3,
+          "windMph": 23.1,
+          "weatherCategory": "WIND"
+        },
+        {
+          "gameDate": "2020-12-12",
+          "homeTeam": "New Mexico",
+          "awayTeam": "Fresno State",
+          "homeScore": 49,
+          "awayScore": 39,
+          "total": 88,
+          "temperature": 40.8,
+          "windMph": 21.5,
+          "weatherCategory": "RAIN"
+        }
+      ],
+      "top5Lowest": [
+        {
+          "gameDate": "2011-10-15",
+          "homeTeam": "Kent State",
+          "awayTeam": "Miami (OH)",
+          "homeScore": 3,
+          "awayScore": 9,
+          "total": 12,
+          "temperature": 55.7,
+          "windMph": 20.8,
+          "weatherCategory": "WIND"
+        },
+        {
+          "gameDate": "2006-10-28",
+          "homeTeam": "Purdue",
+          "awayTeam": "Penn State",
+          "homeScore": 0,
+          "awayScore": 12,
+          "total": 12,
+          "temperature": 50.6,
+          "windMph": 21.1,
+          "weatherCategory": "WIND"
+        },
+        {
+          "gameDate": "2016-10-08",
+          "homeTeam": "North Carolina State",
+          "awayTeam": "Notre Dame",
+          "homeScore": 10,
+          "awayScore": 3,
+          "total": 13,
+          "temperature": 69.5,
+          "windMph": 22.1,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2018-12-26",
+          "homeTeam": "Texas Christian",
+          "awayTeam": "California",
+          "homeScore": 10,
+          "awayScore": 7,
+          "total": 17,
+          "temperature": 62.6,
+          "windMph": 20.8,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2012-10-27",
+          "homeTeam": "Florida International",
+          "awayTeam": "Western Kentucky",
+          "homeScore": 6,
+          "awayScore": 14,
+          "total": 20,
+          "temperature": 82.5,
+          "windMph": 20.3,
+          "weatherCategory": "WIND"
+        }
+      ]
+    },
+    "snow": {
+      "games": 120,
+      "homeWinPct": 69.2,
+      "avgTotal": 50.3,
+      "avgMargin": 9.6,
+      "avgTotalDelta": -4.5,
+      "overPct": 41.7,
+      "top5Highest": [
+        {
+          "gameDate": "2013-12-21",
+          "homeTeam": "Colorado State",
+          "awayTeam": "Washington State",
+          "homeScore": 48,
+          "awayScore": 45,
+          "total": 93,
+          "temperature": 29.7,
+          "windMph": 3.4,
+          "weatherCategory": "SNOW"
+        },
+        {
+          "gameDate": "2018-11-15",
+          "homeTeam": "Kent State",
+          "awayTeam": "Toledo",
+          "homeScore": 34,
+          "awayScore": 56,
+          "total": 90,
+          "temperature": 33.3,
+          "windMph": 9.6,
+          "weatherCategory": "SNOW"
+        },
+        {
+          "gameDate": "2009-12-05",
+          "homeTeam": "Pittsburgh",
+          "awayTeam": "Cincinnati",
+          "homeScore": 44,
+          "awayScore": 45,
+          "total": 89,
+          "temperature": 32.9,
+          "windMph": 6,
+          "weatherCategory": "SNOW"
+        },
+        {
+          "gameDate": "2023-12-26",
+          "homeTeam": "Kansas",
+          "awayTeam": "Nevada-Las Vegas",
+          "homeScore": 49,
+          "awayScore": 36,
+          "total": 85,
+          "temperature": 33.2,
+          "windMph": 6.4,
+          "weatherCategory": "SNOW"
+        },
+        {
+          "gameDate": "2014-11-15",
+          "homeTeam": "Wisconsin",
+          "awayTeam": "Nebraska",
+          "homeScore": 59,
+          "awayScore": 24,
+          "total": 83,
+          "temperature": 27.2,
+          "windMph": 3.1,
+          "weatherCategory": "SNOW"
+        }
+      ],
+      "top5Lowest": [
+        {
+          "gameDate": "2018-11-17",
+          "homeTeam": "Nebraska",
+          "awayTeam": "Michigan State",
+          "homeScore": 9,
+          "awayScore": 6,
+          "total": 15,
+          "temperature": 28.7,
+          "windMph": 17.6,
+          "weatherCategory": "SNOW"
+        },
+        {
+          "gameDate": "2009-11-27",
+          "homeTeam": "Kent State",
+          "awayTeam": "Buffalo",
+          "homeScore": 6,
+          "awayScore": 9,
+          "total": 15,
+          "temperature": 36.5,
+          "windMph": 14.4,
+          "weatherCategory": "SNOW"
+        },
+        {
+          "gameDate": "2011-10-29",
+          "homeTeam": "Penn State",
+          "awayTeam": "Illinois",
+          "homeScore": 10,
+          "awayScore": 7,
+          "total": 17,
+          "temperature": 34.1,
+          "windMph": 6.1,
+          "weatherCategory": "SNOW"
+        },
+        {
+          "gameDate": "2008-12-06",
+          "homeTeam": "West Virginia",
+          "awayTeam": "South Florida",
+          "homeScore": 13,
+          "awayScore": 7,
+          "total": 20,
+          "temperature": 30.2,
+          "windMph": 10,
+          "weatherCategory": "SNOW"
+        },
+        {
+          "gameDate": "2022-11-16",
+          "homeTeam": "Central Michigan",
+          "awayTeam": "Western Michigan",
+          "homeScore": 10,
+          "awayScore": 12,
+          "total": 22,
+          "temperature": 30.8,
+          "windMph": 3.6,
+          "weatherCategory": "SNOW"
+        }
+      ]
+    },
+    "rain": {
+      "games": 1718,
+      "homeWinPct": 61.2,
+      "avgTotal": 53.3,
+      "avgMargin": 5.5,
+      "avgTotalDelta": -1.5,
+      "overPct": 45.7,
+      "top5Highest": [
+        {
+          "gameDate": "2016-11-26",
+          "homeTeam": "Pittsburgh",
+          "awayTeam": "Syracuse",
+          "homeScore": 76,
+          "awayScore": 61,
+          "total": 137,
+          "temperature": 41.3,
+          "windMph": 10.9,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2022-09-03",
+          "homeTeam": "Appalachian State",
+          "awayTeam": "North Carolina",
+          "homeScore": 61,
+          "awayScore": 63,
+          "total": 124,
+          "temperature": 73.3,
+          "windMph": 7.9,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2024-09-21",
+          "homeTeam": "North Carolina",
+          "awayTeam": "James Madison",
+          "homeScore": 50,
+          "awayScore": 70,
+          "total": 120,
+          "temperature": 81.1,
+          "windMph": 2.9,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2014-10-11",
+          "homeTeam": "Baylor",
+          "awayTeam": "Texas Christian",
+          "homeScore": 61,
+          "awayScore": 58,
+          "total": 119,
+          "temperature": 67.2,
+          "windMph": 8.7,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2013-09-21",
+          "homeTeam": "Duke",
+          "awayTeam": "Pittsburgh",
+          "homeScore": 55,
+          "awayScore": 58,
+          "total": 113,
+          "temperature": 75.6,
+          "windMph": 8.6,
+          "weatherCategory": "RAIN"
+        }
+      ],
+      "top5Lowest": [
+        {
+          "gameDate": "2013-09-14",
+          "homeTeam": "Colorado",
+          "awayTeam": "Fresno State",
+          "homeScore": 0,
+          "awayScore": 0,
+          "total": 0,
+          "temperature": 72.9,
+          "windMph": 1.6,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2008-12-31",
+          "homeTeam": "Oregon State",
+          "awayTeam": "Pittsburgh",
+          "homeScore": 3,
+          "awayScore": 0,
+          "total": 3,
+          "temperature": 44.4,
+          "windMph": 8.5,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2016-09-01",
+          "homeTeam": "Wake Forest",
+          "awayTeam": "Tulane",
+          "homeScore": 7,
+          "awayScore": 3,
+          "total": 10,
+          "temperature": 79.7,
+          "windMph": 1.8,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2015-11-07",
+          "homeTeam": "Tulane",
+          "awayTeam": "Connecticut",
+          "homeScore": 3,
+          "awayScore": 7,
+          "total": 10,
+          "temperature": 73.8,
+          "windMph": 11.5,
+          "weatherCategory": "RAIN"
+        },
+        {
+          "gameDate": "2022-11-05",
+          "homeTeam": "Old Dominion",
+          "awayTeam": "Marshall",
+          "homeScore": 0,
+          "awayScore": 12,
+          "total": 12,
+          "temperature": 76.6,
+          "windMph": 14.2,
+          "weatherCategory": "RAIN"
+        }
+      ]
+    }
+  },
+  "tempWindMatrix": {
+    "Cold": {
+      "Calm": {
+        "games": 667,
+        "avgTotal": 53.9,
+        "homeWinPct": 71.4
+      },
+      "Breezy": {
+        "games": 297,
+        "avgTotal": 51.9,
+        "homeWinPct": 68.4
+      },
+      "Windy": {
+        "games": 10,
+        "avgTotal": 51.2,
+        "homeWinPct": 40
+      }
+    },
+    "Moderate": {
+      "Calm": {
+        "games": 8161,
+        "avgTotal": 55.2,
+        "homeWinPct": 61.6
+      },
+      "Breezy": {
+        "games": 2607,
+        "avgTotal": 53.7,
+        "homeWinPct": 59.2
+      },
+      "Windy": {
+        "games": 106,
+        "avgTotal": 51.8,
+        "homeWinPct": 55.7
+      }
+    },
+    "Hot": {
+      "Calm": {
+        "games": 2114,
+        "avgTotal": 55,
+        "homeWinPct": 63.3
+      },
+      "Breezy": {
+        "games": 400,
+        "avgTotal": 56.5,
+        "homeWinPct": 63.7
+      },
+      "Windy": {
+        "games": 15,
+        "avgTotal": 54.1,
+        "homeWinPct": 73.3
+      }
+    }
+  },
+  "seasonalTrends": [
+    {
+      "month": "August",
+      "monthNumber": 8,
+      "count": 406,
+      "avgTemperature": 81.7,
+      "avgWind": 6.3,
+      "avgTotal": 53.7,
+      "homeWinPct": 70
+    },
+    {
+      "month": "September",
+      "monthNumber": 9,
+      "count": 3987,
+      "avgTemperature": 76.8,
+      "avgWind": 6.7,
+      "avgTotal": 54.3,
+      "homeWinPct": 63.1
+    },
+    {
+      "month": "October",
+      "monthNumber": 10,
+      "count": 4448,
+      "avgTemperature": 66,
+      "avgWind": 7.9,
+      "avgTotal": 54.6,
+      "homeWinPct": 57.9
+    },
+    {
+      "month": "November",
+      "monthNumber": 11,
+      "count": 4466,
+      "avgTemperature": 55.5,
+      "avgWind": 7.8,
+      "avgTotal": 55.4,
+      "homeWinPct": 58
+    },
+    {
+      "month": "December",
+      "monthNumber": 12,
+      "count": 958,
+      "avgTemperature": 47.9,
+      "avgWind": 7.4,
+      "avgTotal": 54.9,
+      "homeWinPct": 87.9
+    },
+    {
+      "month": "January",
+      "monthNumber": 1,
+      "count": 112,
+      "avgTemperature": 44.4,
+      "avgWind": 7.9,
+      "avgTotal": 55.3,
+      "homeWinPct": 99.1
+    }
+  ],
+  "homeAdvantage": {
+    "overall": {
+      "games": 14735,
+      "homeWinPct": 61.6
+    },
+    "dome": {
+      "games": 358,
+      "homeWinPct": 44.1
+    },
+    "outdoor": {
+      "games": 14377,
+      "homeWinPct": 62
+    },
+    "goodWeather": {
+      "games": 4663,
+      "homeWinPct": 60.4
+    },
+    "badWeather": {
+      "games": 2835,
+      "homeWinPct": 62.8
+    },
+    "badWeatherConference": {
+      "games": 1916,
+      "homeWinPct": 56.9
+    },
+    "badWeatherNonConference": {
+      "games": 919,
+      "homeWinPct": 75
+    }
+  },
+  "keyFindings": [
+    "Home teams win 69.2% in snow games vs 61.6% overall (120 snow games).",
+    "Scoring drops by 5.9 points per game when temperature is below 25°F (111 games, avg 48.9 vs 54.8 overall).",
+    "Wind over 20 mph reduces scoring by 2.5 points on average (126 games).",
+    "Dome games average 56.6 total points vs 54.8 in outdoor games (delta: 1.8).",
+    "Home teams win 60.4% in good weather vs 62.8% in bad weather (4663 vs 2835 games).",
+    "Rain games average 53.3 total points (-1.5 vs overall avg), with home teams winning 61.2%.",
+    "Games over 100°F average 50.6 total points across 19 games (-4.2 vs outdoor avg).",
+    "In sub-20°F games, home teams win 81.6% of the time (49 games).",
+    "In bad weather conference games, home teams win 56.9% vs 75% in non-conference bad weather games.",
+    "Average temperature drops from 76.8°F in September to 47.9°F in December, while scoring shifts from 54.3 to 54.9 points per game.",
+    "In moderate temperatures (40-79°F), calm conditions (<10 mph) produce 3.4 more points per game than windy conditions (20+ mph): 55.2 vs 51.8.",
+    "Cold and windy games (<40°F, 20+ mph wind) average just 51.2 total points across 10 games — the harshest scoring environment.",
+    "Games with 25+ mph winds go under the outdoor average total 35.7% of the time (14 games)."
+  ]
+}
