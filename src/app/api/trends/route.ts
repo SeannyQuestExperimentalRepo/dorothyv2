@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const query = parsed.data as TrendQuery;
-    const result = executeTrendQueryCached(query);
+    const result = await executeTrendQueryCached(query);
     const durationMs = Math.round(performance.now() - start);
     return formatResponse(result, durationMs);
   } catch (err) {
@@ -216,7 +216,7 @@ export async function GET(request: NextRequest) {
       filters: [],
     });
 
-    const result = executeTrendQueryCached(query);
+    const result = await executeTrendQueryCached(query);
     const durationMs = Math.round(performance.now() - start);
     return formatResponse(result, durationMs);
   } catch (err) {

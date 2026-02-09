@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         filters: query.filters,
         seasonRange: query.seasonRange,
       };
-      const result = executeTrendQueryCached(trendQuery);
+      const result = await executeTrendQueryCached(trendQuery);
       card = generateGameTrendCard(result);
     } else if (query.type === "player") {
       const playerQuery: PlayerTrendQuery = {

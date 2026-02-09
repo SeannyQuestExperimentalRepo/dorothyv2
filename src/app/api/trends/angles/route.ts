@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const options = parsed.data as ReverseLookupOptions;
-    const result = executeReverseLookup(options);
+    const result = await executeReverseLookup(options);
     const durationMs = Math.round(performance.now() - start);
 
     return NextResponse.json({
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
   try {
     // If team is specified, use team-specific lookup
     if (team && sport) {
-      const result = executeTeamReverseLookup(
+      const result = await executeTeamReverseLookup(
         sport,
         team,
         seasonRange || [2015, 2025],
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
       categories,
     };
 
-    const result = executeReverseLookup(options);
+    const result = await executeReverseLookup(options);
     const durationMs = Math.round(performance.now() - start);
 
     return NextResponse.json({

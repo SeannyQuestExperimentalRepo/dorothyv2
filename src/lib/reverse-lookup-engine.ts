@@ -15,9 +15,10 @@
 
 import {
   executeTrendQuery,
+  loadAllGamesCached,
   type TrendQuery,
   type TrendFilter,
-
+  type TrendGame,
   type Perspective,
 } from "./trend-engine";
 import {
@@ -599,9 +600,9 @@ function generateHeadline(
  * Scans all applicable angle templates for the given options and returns
  * the most interesting findings, ranked by statistical significance.
  */
-export function executeReverseLookup(
+export async function executeReverseLookup(
   options: ReverseLookupOptions = {},
-): ReverseLookupResult {
+): Promise<ReverseLookupResult> {
   const start = performance.now();
 
   const {
@@ -612,6 +613,9 @@ export function executeReverseLookup(
     minStrength = "weak",
     categories,
   } = options;
+
+  // Pre-load all games from cache/DB
+  const allGames: TrendGame[] = await loadAllGamesCached();
 
   // Filter templates by sport and category
   const sportsToScan: ("NFL" | "NCAAF" | "NCAAMB")[] = sport
@@ -643,7 +647,7 @@ export function executeReverseLookup(
       };
 
       try {
-        const result = executeTrendQuery(query);
+        const result = executeTrendQuery(query, allGames);
         const summary = result.summary;
 
         const minSample = template.minSample || 20;
@@ -758,12 +762,12 @@ export function executeReverseLookup(
  * Execute reverse lookup for a specific team.
  * Scans all angle templates from the team's perspective.
  */
-export function executeTeamReverseLookup(
+export async function executeTeamReverseLookup(
   sport: "NFL" | "NCAAF" | "NCAAMB",
   team: string,
   seasonRange: [number, number] = [2015, 2025],
   maxResults: number = 15,
-): ReverseLookupResult {
+): Promise<ReverseLookupResult> {
   return executeReverseLookup({
     sport,
     team,

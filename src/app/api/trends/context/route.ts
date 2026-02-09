@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     // Matchup mode: specific home/away teams
     if (home && away && sport) {
       const season = seasonStr ? parseInt(seasonStr, 10) : undefined;
-      const context = getMatchupContext(sport, home, away, season);
+      const context = await getMatchupContext(sport, home, away, season);
 
       if (!context) {
         return NextResponse.json({
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       return errorResponse("Date must be in YYYY-MM-DD format", 400);
     }
 
-    const result = getDailyGameContext(date, sport || undefined);
+    const result = await getDailyGameContext(date, sport || undefined);
     const durationMs = Math.round(performance.now() - start);
 
     return NextResponse.json({

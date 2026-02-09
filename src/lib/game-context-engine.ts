@@ -125,12 +125,12 @@ export interface DailyContextResult {
 /**
  * Get game context for all games on a specific date.
  */
-export function getDailyGameContext(
+export async function getDailyGameContext(
   date: string,
   sport?: "NFL" | "NCAAF" | "NCAAMB",
-): DailyContextResult {
+): Promise<DailyContextResult> {
   const start = performance.now();
-  const allGames = loadAllGamesCached();
+  const allGames = await loadAllGamesCached();
 
   // Find games on this date
   let gamesOnDate = allGames.filter((g) => g.gameDate === date);
@@ -163,13 +163,13 @@ export function getDailyGameContext(
 /**
  * Get game context for a specific matchup (by teams and season).
  */
-export function getMatchupContext(
+export async function getMatchupContext(
   sport: "NFL" | "NCAAF" | "NCAAMB",
   homeTeam: string,
   awayTeam: string,
   season?: number,
-): GameContext | null {
-  const allGames = loadAllGamesCached();
+): Promise<GameContext | null> {
+  const allGames = await loadAllGamesCached();
 
   // Find the most recent game for this matchup
   const matchingGames = allGames
@@ -210,7 +210,7 @@ function buildGameContext(
   const h2h = buildHeadToHead(sport, game.homeTeam || "", game.awayTeam || "", allGames);
 
   // Situational angles
-  const angles = buildSituationalAngles(game);
+  const angles = buildSituationalAngles(game, allGames);
 
   // Generate insight
   const insight = generateInsight(game, homeTrends, awayTrends, h2h, angles);
@@ -451,6 +451,7 @@ function buildHeadToHead(
 
 function buildSituationalAngles(
   game: TrendGame,
+  allGames: TrendGame[],
 ): SituationalAngle[] {
   const angles: SituationalAngle[] = [];
   const sport = game.sport as "NFL" | "NCAAF" | "NCAAMB";
@@ -465,7 +466,7 @@ function buildSituationalAngles(
         perspective: "team",
         seasonRange: [season - 2, season],
         filters: [{ field: "isHome", operator: "eq", value: true }],
-      } as TrendQuery);
+      } as TrendQuery, allGames);
 
       if (homeAtsResult.summary.totalGames >= 10) {
         const atsTotal = homeAtsResult.summary.atsCovered + homeAtsResult.summary.atsLost;
@@ -501,7 +502,7 @@ function buildSituationalAngles(
         perspective: "team",
         seasonRange: [season - 2, season],
         filters: [{ field: "isHome", operator: "eq", value: false }],
-      } as TrendQuery);
+      } as TrendQuery, allGames);
 
       if (awayAtsResult.summary.totalGames >= 10) {
         const atsTotal = awayAtsResult.summary.atsCovered + awayAtsResult.summary.atsLost;
@@ -537,7 +538,7 @@ function buildSituationalAngles(
         perspective: "team",
         seasonRange: [season - 2, season],
         filters: [],
-      } as TrendQuery);
+      } as TrendQuery, allGames);
 
       const ouTotal = ouResult.summary.overs + ouResult.summary.unders;
       if (ouTotal >= 10) {

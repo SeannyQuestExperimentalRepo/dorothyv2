@@ -37,9 +37,9 @@ export async function GET() {
   try {
     const start = performance.now();
 
-    const nflGames = loadGamesBySportCached("NFL");
-    const ncaafGames = loadGamesBySportCached("NCAAF");
-    const ncaambGames = loadGamesBySportCached("NCAAMB");
+    const nflGames = await loadGamesBySportCached("NFL");
+    const ncaafGames = await loadGamesBySportCached("NCAAF");
+    const ncaambGames = await loadGamesBySportCached("NCAAMB");
 
     const nflSeasons = getSeasonRange(nflGames);
     const ncaafSeasons = getSeasonRange(ncaafGames);

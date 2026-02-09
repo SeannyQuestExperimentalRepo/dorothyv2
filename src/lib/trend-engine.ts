@@ -15,8 +15,9 @@
  * The spreadResult in raw data is already computed from the home team's perspective.
  */
 
-import * as fs from "fs";
-import * as path from "path";
+import {
+  loadGamesBySportFromDB,
+} from "./db-trend-loader";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -248,317 +249,7 @@ interface OrientedGame {
   perspectiveSpread: number | null;
 }
 
-// ─── Constants ──────────────────────────────────────────────────────────────────
-
-const DATA_DIR = path.resolve(process.cwd(), "data");
-
-const NFL_FILE = "nfl-games-final.json";
-const NCAAF_FILE = "ncaaf-games-final.json";
-const NCAAMB_FILE = "ncaamb-games-final.json";
-
-// ─── Data Loading & Normalization ───────────────────────────────────────────────
-
-/**
- * Load and normalize all game data across NFL, NCAAF, and NCAAMB.
- * Data is read from JSON files in the /data directory.
- */
-export function loadAllGames(): TrendGame[] {
-  return [
-    ...loadGamesBySport("NFL"),
-    ...loadGamesBySport("NCAAF"),
-    ...loadGamesBySport("NCAAMB"),
-  ];
-}
-
-/**
- * Load and normalize game data for a single sport.
- */
-export function loadGamesBySport(sport: Sport): TrendGame[] {
-  const fileMap: Record<Sport, string> = {
-    NFL: NFL_FILE,
-    NCAAF: NCAAF_FILE,
-    NCAAMB: NCAAMB_FILE,
-  };
-  const filePath = path.join(DATA_DIR, fileMap[sport]);
-
-  if (!fs.existsSync(filePath)) {
-    console.warn(`[trend-engine] Data file not found: ${filePath}`);
-    return [];
-  }
-
-  const rawData = JSON.parse(fs.readFileSync(filePath, "utf-8")) as Record<
-    string,
-    unknown
-  >[];
-
-  const normalizers: Record<
-    Sport,
-    (raw: Record<string, unknown>) => TrendGame
-  > = {
-    NFL: normalizeNFL,
-    NCAAF: normalizeNCAAF,
-    NCAAMB: normalizeNCAAMB,
-  };
-
-  return rawData.map(normalizers[sport]);
-}
-
-/** Safe accessor for unknown objects */
-function get<T>(obj: Record<string, unknown>, key: string, fallback: T): T {
-  const val = obj[key];
-  if (val === undefined || val === null) return fallback;
-  return val as T;
-}
-
-/**
- * Normalize an NFL raw game object into TrendGame.
- *
- * NFL data uses homeTeamCanonical/awayTeamCanonical for team names,
- * winnerCanonical for the winner, and does not have conference info.
- */
-function normalizeNFL(raw: Record<string, unknown>): TrendGame {
-  const homeScore = get<number>(raw, "homeScore", 0);
-  const awayScore = get<number>(raw, "awayScore", 0);
-
-  return {
-    sport: "NFL",
-    season: get<number>(raw, "season", 0),
-    gameDate: get<string>(raw, "gameDate", ""),
-    homeTeam: get<string>(raw, "homeTeamCanonical", ""),
-    awayTeam: get<string>(raw, "awayTeamCanonical", ""),
-    homeScore,
-    awayScore,
-    scoreDifference: get<number>(raw, "scoreDifference", homeScore - awayScore),
-    winner: get<string>(raw, "winnerCanonical", ""),
-    homeRank: null,
-    awayRank: null,
-    homeKenpomRank: null,
-    awayKenpomRank: null,
-    spread: get<number | null>(raw, "spread", null),
-    overUnder: get<number | null>(raw, "overUnder", null),
-    spreadResult: get<"COVERED" | "LOST" | "PUSH" | null>(
-      raw,
-      "spreadResult",
-      null
-    ),
-    ouResult: get<"OVER" | "UNDER" | "PUSH" | null>(raw, "ouResult", null),
-    totalPoints: homeScore + awayScore,
-    isConferenceGame: false,
-    isPlayoff: get<boolean>(raw, "isPlayoff", false),
-    isNeutralSite: get<boolean>(raw, "isNeutralSite", false),
-    week: get<string | null>(raw, "week", null),
-    dayOfWeek: get<string | null>(raw, "dayOfWeek", null),
-    isPrimetime: get<boolean>(raw, "isPrimetime", false),
-    primetimeSlot: get<string | null>(raw, "primetimeSlot", null),
-    weatherCategory: get<string | null>(raw, "weatherCategory", null),
-    temperature: get<number | null>(raw, "temperature", null),
-    windMph: get<number | null>(raw, "windMph", null),
-    isBowlGame: false,
-    bowlName: null,
-    isNCAAT: false,
-    isNIT: false,
-    isConfTourney: false,
-    overtimes: 0,
-    homeSeed: null,
-    awaySeed: null,
-    homeAdjEM: null,
-    awayAdjEM: null,
-    homeAdjOE: null,
-    awayAdjOE: null,
-    homeAdjDE: null,
-    awayAdjDE: null,
-    homeAdjTempo: null,
-    awayAdjTempo: null,
-    fmHomePred: null,
-    fmAwayPred: null,
-    fmHomeWinProb: null,
-    fmThrillScore: null,
-    homeRestDays: get<number | null>(raw, "homeRestDays", null),
-    awayRestDays: get<number | null>(raw, "awayRestDays", null),
-    restAdvantage: get<number | null>(raw, "restAdvantage", null),
-    homeIsByeWeek: get<boolean>(raw, "homeIsByeWeek", false),
-    awayIsByeWeek: get<boolean>(raw, "awayIsByeWeek", false),
-    isShortWeek: get<boolean>(raw, "isShortWeek", false),
-    homeIsBackToBack: false,
-    awayIsBackToBack: false,
-    homeConference: null,
-    awayConference: null,
-    expectedPace: null,
-    paceMismatch: null,
-    efficiencyGap: null,
-    kenpomPredMargin: null,
-    isKenpomUpset: false,
-    gameStyle: null,
-    _raw: raw,
-  };
-}
-
-/**
- * Normalize an NCAAF raw game object into TrendGame.
- *
- * NCAAF data uses homeTeamCanonical/awayTeamCanonical for full names,
- * has conference info, bowl game info, and AP ranks.
- */
-function normalizeNCAAF(raw: Record<string, unknown>): TrendGame {
-  const homeScore = get<number>(raw, "homeScore", 0);
-  const awayScore = get<number>(raw, "awayScore", 0);
-
-  return {
-    sport: "NCAAF",
-    season: get<number>(raw, "season", 0),
-    gameDate: get<string>(raw, "gameDate", ""),
-    homeTeam: get<string>(raw, "homeTeamCanonical", ""),
-    awayTeam: get<string>(raw, "awayTeamCanonical", ""),
-    homeScore,
-    awayScore,
-    scoreDifference: get<number>(raw, "scoreDifference", homeScore - awayScore),
-    winner: get<string>(raw, "winnerCanonical", ""),
-    homeRank: get<number | null>(raw, "homeRank", null),
-    awayRank: get<number | null>(raw, "awayRank", null),
-    homeKenpomRank: null,
-    awayKenpomRank: null,
-    spread: get<number | null>(raw, "spread", null),
-    overUnder: get<number | null>(raw, "overUnder", null),
-    spreadResult: get<"COVERED" | "LOST" | "PUSH" | null>(
-      raw,
-      "spreadResult",
-      null
-    ),
-    ouResult: get<"OVER" | "UNDER" | "PUSH" | null>(raw, "ouResult", null),
-    totalPoints: homeScore + awayScore,
-    isConferenceGame: get<boolean>(raw, "isConferenceGame", false),
-    isPlayoff: get<boolean>(raw, "isPlayoff", false),
-    isNeutralSite: get<boolean>(raw, "isNeutralSite", false),
-    week: get<string | null>(raw, "week", null),
-    dayOfWeek: get<string | null>(raw, "dayOfWeek", null),
-    isPrimetime: get<boolean>(raw, "isPrimetime", false),
-    primetimeSlot: get<string | null>(raw, "primetimeSlot", null),
-    weatherCategory: get<string | null>(raw, "weatherCategory", null),
-    temperature: get<number | null>(raw, "temperature", null),
-    windMph: get<number | null>(raw, "windMph", null),
-    isBowlGame: get<boolean>(raw, "isBowlGame", false),
-    bowlName: get<string | null>(raw, "bowlName", null),
-    isNCAAT: false,
-    isNIT: false,
-    isConfTourney: false,
-    overtimes: 0,
-    homeSeed: null,
-    awaySeed: null,
-    homeAdjEM: null,
-    awayAdjEM: null,
-    homeAdjOE: null,
-    awayAdjOE: null,
-    homeAdjDE: null,
-    awayAdjDE: null,
-    homeAdjTempo: null,
-    awayAdjTempo: null,
-    fmHomePred: null,
-    fmAwayPred: null,
-    fmHomeWinProb: null,
-    fmThrillScore: null,
-    homeRestDays: get<number | null>(raw, "homeRestDays", null),
-    awayRestDays: get<number | null>(raw, "awayRestDays", null),
-    restAdvantage: get<number | null>(raw, "restAdvantage", null),
-    homeIsByeWeek: get<boolean>(raw, "homeIsByeWeek", false),
-    awayIsByeWeek: get<boolean>(raw, "awayIsByeWeek", false),
-    isShortWeek: get<boolean>(raw, "isShortWeek", false),
-    homeIsBackToBack: false,
-    awayIsBackToBack: false,
-    homeConference: get<string | null>(raw, "homeConference", null),
-    awayConference: get<string | null>(raw, "awayConference", null),
-    expectedPace: null,
-    paceMismatch: null,
-    efficiencyGap: null,
-    kenpomPredMargin: null,
-    isKenpomUpset: false,
-    gameStyle: null,
-    _raw: raw,
-  };
-}
-
-/**
- * Normalize an NCAAMB raw game object into TrendGame.
- *
- * NCAAMB data uses homeTeam/awayTeam (no "Canonical" suffix),
- * has KenPom stats, seeds, overtime, and tournament flags.
- */
-function normalizeNCAAMB(raw: Record<string, unknown>): TrendGame {
-  const homeScore = get<number>(raw, "homeScore", 0);
-  const awayScore = get<number>(raw, "awayScore", 0);
-  const isNCAAT = get<boolean>(raw, "isNCAAT", false);
-
-  return {
-    sport: "NCAAMB",
-    season: get<number>(raw, "season", 0),
-    gameDate: get<string>(raw, "gameDate", ""),
-    homeTeam: get<string>(raw, "homeTeam", ""),
-    awayTeam: get<string>(raw, "awayTeam", ""),
-    homeScore,
-    awayScore,
-    scoreDifference: get<number>(raw, "scoreDifference", homeScore - awayScore),
-    winner: get<string>(raw, "winnerCanonical", ""),
-    homeRank: get<number | null>(raw, "homeRank", null),
-    awayRank: get<number | null>(raw, "awayRank", null),
-    homeKenpomRank: get<number | null>(raw, "homeKenpomRank", null),
-    awayKenpomRank: get<number | null>(raw, "awayKenpomRank", null),
-    spread: get<number | null>(raw, "spread", null),
-    overUnder: get<number | null>(raw, "overUnder", null),
-    spreadResult: get<"COVERED" | "LOST" | "PUSH" | null>(
-      raw,
-      "spreadResult",
-      null
-    ),
-    ouResult: get<"OVER" | "UNDER" | "PUSH" | null>(raw, "ouResult", null),
-    totalPoints: homeScore + awayScore,
-    isConferenceGame: get<boolean>(raw, "isConferenceGame", false),
-    isPlayoff: isNCAAT,
-    isNeutralSite: get<boolean>(raw, "isNeutralSite", false),
-    week: null,
-    dayOfWeek: null,
-    isPrimetime: false,
-    primetimeSlot: null,
-    weatherCategory: null,
-    temperature: null,
-    windMph: null,
-    isBowlGame: false,
-    bowlName: null,
-    isNCAAT,
-    isNIT: get<boolean>(raw, "isNIT", false),
-    isConfTourney: get<boolean>(raw, "isConfTourney", false),
-    overtimes: get<number>(raw, "overtimes", 0),
-    homeSeed: get<number | null>(raw, "homeSeed", null),
-    awaySeed: get<number | null>(raw, "awaySeed", null),
-    homeAdjEM: get<number | null>(raw, "homeAdjEM", null),
-    awayAdjEM: get<number | null>(raw, "awayAdjEM", null),
-    homeAdjOE: get<number | null>(raw, "homeAdjOE", null),
-    awayAdjOE: get<number | null>(raw, "awayAdjOE", null),
-    homeAdjDE: get<number | null>(raw, "homeAdjDE", null),
-    awayAdjDE: get<number | null>(raw, "awayAdjDE", null),
-    homeAdjTempo: get<number | null>(raw, "homeAdjTempo", null),
-    awayAdjTempo: get<number | null>(raw, "awayAdjTempo", null),
-    fmHomePred: get<number | null>(raw, "fmHomePred", null),
-    fmAwayPred: get<number | null>(raw, "fmAwayPred", null),
-    fmHomeWinProb: get<number | null>(raw, "fmHomeWinProb", null),
-    fmThrillScore: get<number | null>(raw, "fmThrillScore", null),
-    homeRestDays: get<number | null>(raw, "homeRestDays", null),
-    awayRestDays: get<number | null>(raw, "awayRestDays", null),
-    restAdvantage: get<number | null>(raw, "restAdvantage", null),
-    homeIsByeWeek: false,
-    awayIsByeWeek: false,
-    isShortWeek: false,
-    homeIsBackToBack: get<boolean>(raw, "homeIsBackToBack", false),
-    awayIsBackToBack: get<boolean>(raw, "awayIsBackToBack", false),
-    homeConference: get<string | null>(raw, "homeConference", null),
-    awayConference: get<string | null>(raw, "awayConference", null),
-    expectedPace: get<number | null>(raw, "expectedPace", null),
-    paceMismatch: get<number | null>(raw, "paceMismatch", null),
-    efficiencyGap: get<number | null>(raw, "efficiencyGap", null),
-    kenpomPredMargin: get<number | null>(raw, "kenpomPredMargin", null),
-    isKenpomUpset: get<boolean>(raw, "isKenpomUpset", false),
-    gameStyle: get<string | null>(raw, "gameStyle", null),
-    _raw: raw,
-  };
-}
+// ─── Data Loading (from PostgreSQL via Prisma) ──────────────────────────────
 
 // ─── Filter System ──────────────────────────────────────────────────────────────
 
@@ -1189,20 +880,14 @@ function emptyTrendSummary(): TrendSummary {
  */
 export function executeTrendQuery(
   query: TrendQuery,
-  games?: TrendGame[]
+  games: TrendGame[]
 ): TrendResult {
-  // Step 1: Load games if not provided
-  let pool: TrendGame[];
-  if (games) {
-    pool = games;
-  } else if (query.sport === "ALL") {
-    pool = loadAllGames();
-  } else {
-    pool = loadGamesBySport(query.sport);
-  }
+  // Games MUST be provided (pre-loaded from cache or DB).
+  // The old fallback to sync file reads has been removed.
+  let pool: TrendGame[] = games;
 
-  // Step 2: Filter by sport (when external games were provided and sport != ALL)
-  if (games && query.sport !== "ALL") {
+  // Filter by sport (when all games were provided and sport != ALL)
+  if (query.sport !== "ALL") {
     pool = pool.filter((g) => g.sport === query.sport);
   }
 
@@ -1343,57 +1028,88 @@ export function buildQuery(
   };
 }
 
-// ─── Game Caching ───────────────────────────────────────────────────────────────
+// ─── Game Caching (async, backed by PostgreSQL) ─────────────────────────────
 
 /**
- * In-memory cache to avoid re-reading JSON files on every query.
+ * In-memory cache to avoid re-querying the database on every request.
+ * First call loads from PostgreSQL via Prisma; subsequent calls return cached data.
  * Call clearGameCache() to force a reload after data updates.
  */
 let gameCache: Map<Sport, TrendGame[]> | null = null;
+let cacheInitPromise: Promise<void> | null = null;
+
+/**
+ * Initialize the game cache from PostgreSQL (if not already initialized).
+ * Uses a shared promise to avoid concurrent initialization from multiple requests.
+ */
+async function ensureCacheInitialized(): Promise<void> {
+  if (gameCache) return; // Already initialized
+
+  if (!cacheInitPromise) {
+    cacheInitPromise = (async () => {
+      console.log("[trend-engine] Loading game data from PostgreSQL...");
+      const start = performance.now();
+
+      const [nfl, ncaaf, ncaamb] = await Promise.all([
+        loadGamesBySportFromDB("NFL"),
+        loadGamesBySportFromDB("NCAAF"),
+        loadGamesBySportFromDB("NCAAMB"),
+      ]);
+
+      gameCache = new Map();
+      gameCache.set("NFL", nfl);
+      gameCache.set("NCAAF", ncaaf);
+      gameCache.set("NCAAMB", ncaamb);
+
+      const total = nfl.length + ncaaf.length + ncaamb.length;
+      const durationMs = Math.round(performance.now() - start);
+      console.log(
+        `[trend-engine] Loaded ${total.toLocaleString()} games from DB in ${durationMs}ms ` +
+        `(NFL: ${nfl.length}, NCAAF: ${ncaaf.length}, NCAAMB: ${ncaamb.length})`
+      );
+    })();
+  }
+
+  await cacheInitPromise;
+}
 
 /**
  * Load all games with in-memory caching.
- * First call reads from disk; subsequent calls return cached data.
+ * First call queries PostgreSQL; subsequent calls return cached data.
  */
-export function loadAllGamesCached(): TrendGame[] {
-  if (!gameCache) {
-    gameCache = new Map();
-    for (const sport of ["NFL", "NCAAF", "NCAAMB"] as Sport[]) {
-      gameCache.set(sport, loadGamesBySport(sport));
-    }
-  }
+export async function loadAllGamesCached(): Promise<TrendGame[]> {
+  await ensureCacheInitialized();
   return [
-    ...gameCache.get("NFL")!,
-    ...gameCache.get("NCAAF")!,
-    ...gameCache.get("NCAAMB")!,
+    ...gameCache!.get("NFL")!,
+    ...gameCache!.get("NCAAF")!,
+    ...gameCache!.get("NCAAMB")!,
   ];
 }
 
 /**
  * Load games for a single sport with caching.
  */
-export function loadGamesBySportCached(sport: Sport): TrendGame[] {
-  if (!gameCache) {
-    loadAllGamesCached();
-  }
+export async function loadGamesBySportCached(sport: Sport): Promise<TrendGame[]> {
+  await ensureCacheInitialized();
   return gameCache!.get(sport) ?? [];
 }
 
 /**
- * Clear the in-memory game cache. Call after data file updates.
+ * Clear the in-memory game cache. Call after data updates.
  */
 export function clearGameCache(): void {
   gameCache = null;
+  cacheInitPromise = null;
 }
 
 /**
  * Execute a trend query using cached game data.
  * Preferred for API routes where multiple queries may run per request.
  */
-export function executeTrendQueryCached(query: TrendQuery): TrendResult {
+export async function executeTrendQueryCached(query: TrendQuery): Promise<TrendResult> {
   const games =
     query.sport === "ALL"
-      ? loadAllGamesCached()
-      : loadGamesBySportCached(query.sport);
+      ? await loadAllGamesCached()
+      : await loadGamesBySportCached(query.sport);
   return executeTrendQuery(query, games);
 }
