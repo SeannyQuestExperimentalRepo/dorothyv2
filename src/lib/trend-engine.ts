@@ -252,9 +252,9 @@ interface OrientedGame {
 
 const DATA_DIR = path.resolve(process.cwd(), "data");
 
-const NFL_FILE = "nfl-games-staging.json";
+const NFL_FILE = "nfl-games-final.json";
 const NCAAF_FILE = "ncaaf-games-final.json";
-const NCAAMB_FILE = "ncaamb-games-staging.json";
+const NCAAMB_FILE = "ncaamb-games-final.json";
 
 // ─── Data Loading & Normalization ───────────────────────────────────────────────
 
