@@ -250,7 +250,7 @@ interface OrientedGame {
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
-const DATA_DIR = path.resolve(__dirname, "../../data");
+const DATA_DIR = path.resolve(process.cwd(), "data");
 
 const NFL_FILE = "nfl-games-staging.json";
 const NCAAF_FILE = "ncaaf-games-final.json";

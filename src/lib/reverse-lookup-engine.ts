@@ -17,7 +17,7 @@ import {
   executeTrendQuery,
   type TrendQuery,
   type TrendFilter,
-  type TrendResult,
+
   type Perspective,
 } from "./trend-engine";
 import {

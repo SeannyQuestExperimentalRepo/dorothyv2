@@ -210,7 +210,7 @@ function buildGameContext(
   const h2h = buildHeadToHead(sport, game.homeTeam || "", game.awayTeam || "", allGames);
 
   // Situational angles
-  const angles = buildSituationalAngles(game, allGames);
+  const angles = buildSituationalAngles(game);
 
   // Generate insight
   const insight = generateInsight(game, homeTrends, awayTrends, h2h, angles);
@@ -451,7 +451,6 @@ function buildHeadToHead(
 
 function buildSituationalAngles(
   game: TrendGame,
-  allGames: TrendGame[],
 ): SituationalAngle[] {
   const angles: SituationalAngle[] = [];
   const sport = game.sport as "NFL" | "NCAAF" | "NCAAMB";

@@ -2166,7 +2166,7 @@ export const ncaambTeamNameMap: Record<string, string> = {
   // ═══════════════════════════════════════════════════════════════════
 
   // --- Independents ---
-  "north alabama": "North Alabama",
+  // "north alabama" already defined above (line 1277)
 
   // --- Additional schools not yet covered ---
 
@@ -2755,7 +2755,7 @@ export const ncaambTeamNameMap: Record<string, string> = {
   "duke university": "Duke",
   "villanova university": "Villanova",
   "creighton university": "Creighton",
-  "gonzaga bulldogs": "Gonzaga",
+  // "gonzaga bulldogs" already defined above (line 906)
   "kentucky wildcats_bb": "Kentucky",
 
   // Miami disambiguation

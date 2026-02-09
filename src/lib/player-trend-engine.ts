@@ -15,7 +15,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import {
-  type FilterOperator,
+
   type TrendFilter,
   evaluateOperator,
 } from "./trend-engine";
@@ -212,7 +212,7 @@ export interface PlayerTrendResult {
 
 // ─── Data Loading ───────────────────────────────────────────────────────────────
 
-const DATA_DIR = path.resolve(__dirname, "../../data");
+const DATA_DIR = path.resolve(process.cwd(), "data");
 
 export function loadPlayerGames(): PlayerTrendGame[] {
   const filePath = path.join(DATA_DIR, "nfl-player-games.json");

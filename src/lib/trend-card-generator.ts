@@ -13,12 +13,12 @@
  * Cards are pure data — the frontend decides how to render them.
  */
 
-import type { TrendResult, TrendSummary } from "./trend-engine";
-import type { PlayerTrendResult, PlayerTrendSummary } from "./player-trend-engine";
+import type { TrendResult } from "./trend-engine";
+import type { PlayerTrendResult } from "./player-trend-engine";
 import type { PropResult } from "./prop-trend-engine";
 import type { SignificanceEnrichment } from "./significance-enrichment";
 import { enrichGameSummary, enrichPlayerSummary } from "./significance-enrichment";
-import { analyzeTrendSignificance, type TrendStrength } from "./trend-stats";
+import { type TrendStrength } from "./trend-stats";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
