@@ -67,49 +67,90 @@ function sleep(ms) {
 
 // ─── Match CFBD line to staging game ────────────────────────────────────────
 
-// Known name mismatches between CFBD and Sports Reference
-const TEAM_ALIASES = {
-  "hawai'i": "hawaii",
-  "miami": "miami (fl)",
-  "uconn": "connecticut",
-  "louisiana": "louisiana ragin' cajuns",
-  "uab": "uab blazers",
-  "ucf": "ucf knights",
-  "umass": "massachusetts",
-  "utep": "utep miners",
-  "utsa": "utsa roadrunners",
-  "smu": "smu mustangs",
-  "unlv": "unlv rebels",
+// CFBD name -> our canonical name (direct map for FBS teams with different names)
+const CFBD_TO_CANONICAL = {
+  "App State": "Appalachian State",
+  "BYU": "BYU Cougars",
+  "LSU": "LSU Tigers",
+  "Miami": "Miami (FL)",
+  "Middle Tennessee": "Middle Tennessee State",
+  "NC State": "NC State Wolfpack",
+  "Ole Miss": "Ole Miss Rebels",
+  "San José State": "San Jose State",
+  "SMU": "SMU Mustangs",
+  "Southern Miss": "Southern Mississippi",
+  "TCU": "TCU Horned Frogs",
+  "UAB": "UAB Blazers",
+  "UCF": "UCF Knights",
+  "UConn": "Connecticut",
+  "UL Monroe": "Louisiana-Monroe",
+  "UNLV": "UNLV Rebels",
+  "USC": "USC Trojans",
+  "UTEP": "UTEP Miners",
+  "UTSA": "UTSA Roadrunners",
+  "Hawai'i": "Hawaii",
+  "UMass": "Massachusetts",
+  "SE Louisiana": "Southeastern Louisiana",
+  "Louisiana": "Louisiana Ragin' Cajuns",
 };
 
 function normalizeTeamName(name) {
-  let n = name
+  return name
     .toLowerCase()
-    .replace(/[^a-z0-9' ]/g, "")
-    .trim()
-    .replace(/\s+/g, "");
-
-  // Apply aliases
-  const alias = TEAM_ALIASES[n];
-  if (alias) {
-    n = alias.replace(/[^a-z0-9]/g, "");
-  }
-
-  return n
+    .replace(/[^a-z0-9]/g, "")
     .replace(/state$/, "st")
     .replace(/university$/, "");
 }
 
+/**
+ * Build a multi-key game index: date + various normalized team name forms.
+ * For each game, index by homeTeam, homeTeamCanonical, and homeSlug.
+ */
 function buildGameIndex(games) {
   const index = {};
+
+  function addKey(key, idx) {
+    if (!index[key]) index[key] = [];
+    index[key].push(idx);
+  }
+
   for (let i = 0; i < games.length; i++) {
     const g = games[i];
-    // Index by date + normalized home team
-    const key = `${g.gameDate}|${normalizeTeamName(g.homeTeam)}`;
-    if (!index[key]) index[key] = [];
-    index[key].push(i);
+    const date = g.gameDate;
+    if (!date) continue;
+
+    // Index by homeTeam (short name)
+    if (g.homeTeam) {
+      addKey(`${date}|${normalizeTeamName(g.homeTeam)}`, i);
+    }
+    // Index by homeTeamCanonical (full name)
+    if (g.homeTeamCanonical) {
+      addKey(`${date}|${normalizeTeamName(g.homeTeamCanonical)}`, i);
+    }
+    // Index by homeSlug (sports-reference URL slug)
+    if (g.homeSlug) {
+      addKey(`${date}|${normalizeTeamName(g.homeSlug)}`, i);
+    }
   }
   return index;
+}
+
+/**
+ * Try to find a game match for a CFBD record using multiple name forms.
+ */
+function findGameMatch(gameIndex, dateStr, cfbdTeamName) {
+  // Try direct CFBD name
+  let key = `${dateStr}|${normalizeTeamName(cfbdTeamName)}`;
+  if (gameIndex[key]) return gameIndex[key];
+
+  // Try canonical alias
+  const canonical = CFBD_TO_CANONICAL[cfbdTeamName];
+  if (canonical) {
+    key = `${dateStr}|${normalizeTeamName(canonical)}`;
+    if (gameIndex[key]) return gameIndex[key];
+  }
+
+  return null;
 }
 
 // ─── CFBD Mode ──────────────────────────────────────────────────────────────
@@ -149,8 +190,7 @@ async function importFromCFBD(apiKey) {
           : null;
         if (!dateStr) continue;
 
-        const homeKey = `${dateStr}|${normalizeTeamName(game.homeTeam || "")}`;
-        const candidates = gameIndex[homeKey];
+        const candidates = findGameMatch(gameIndex, dateStr, game.homeTeam || "");
 
         if (candidates && candidates.length > 0) {
           const idx = candidates[0]; // Take first match
