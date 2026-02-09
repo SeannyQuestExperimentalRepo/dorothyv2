@@ -12,10 +12,15 @@ import { loadGamesBySportCached, type TrendGame } from "@/lib/trend-engine";
 
 function getSeasonRange(games: TrendGame[]): [number, number] | null {
   if (games.length === 0) return null;
-  const seasons = games.map((g) => g.season).filter(Boolean);
-  return seasons.length > 0
-    ? [Math.min(...seasons), Math.max(...seasons)]
-    : null;
+  let min = Infinity;
+  let max = -Infinity;
+  for (const g of games) {
+    if (g.season) {
+      if (g.season < min) min = g.season;
+      if (g.season > max) max = g.season;
+    }
+  }
+  return min <= max ? [min, max] : null;
 }
 
 function hasField(games: TrendGame[], field: string): boolean {
