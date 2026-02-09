@@ -33,6 +33,11 @@ export interface ESPNGame {
   awayTeam: ESPNTeam;
   neutralSite: boolean;
   conferenceGame: boolean;
+  /** Inline odds from scoreboard (available for today/yesterday's games) */
+  inlineOdds?: {
+    spread: number | null;
+    overUnder: number | null;
+  };
 }
 
 export interface ESPNTeam {
@@ -252,6 +257,13 @@ function parseEvent(event: ESPNRawEvent): ESPNGame | null {
       score: awayComp.score != null ? parseInt(awayComp.score, 10) : null,
       rank: parseRank(awayComp),
     },
+    // Extract inline odds from scoreboard (available for recent/today's games)
+    inlineOdds: comp.odds?.[0]
+      ? {
+          spread: comp.odds[0].spread ?? null,
+          overUnder: comp.odds[0].overUnder ?? null,
+        }
+      : undefined,
   };
 }
 

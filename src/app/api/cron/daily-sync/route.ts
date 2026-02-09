@@ -2,12 +2,20 @@
  * POST /api/cron/daily-sync
  *
  * Daily cron job that:
- * 1. Syncs yesterday's completed games into the historical DB
- * 2. Refreshes upcoming games with current odds
+ * 1. Refreshes upcoming games with current odds (capture BEFORE games start)
+ * 2. Syncs yesterday's completed games into the historical DB
+ *    (looks up pre-game odds from UpcomingGame table)
+ *
+ * IMPORTANT: Step 1 must run BEFORE step 2 so that today's odds are captured
+ * in the UpcomingGame table before any games are marked as completed. The
+ * UpcomingGame cleanup uses a 3-day window to ensure odds persist long enough
+ * for the completed-game sync to find them.
  *
  * Protected by CRON_SECRET header (Vercel Cron sends this automatically).
  *
- * Schedule: 0 11 * * * (11:00 UTC = 6:00 AM ET)
+ * Schedules (vercel.json):
+ *   0 11 * * *  (11:00 UTC = 6 AM ET) — morning sync + odds capture
+ *   0 17 * * *  (17:00 UTC = 12 PM ET) — midday odds capture for afternoon games
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -41,20 +49,9 @@ export async function POST(request: NextRequest) {
   const results: Record<string, unknown> = {};
 
   try {
-    // 1. Sync yesterday's completed games
-    for (const sport of SPORTS) {
-      try {
-        const syncResult = await syncCompletedGames(sport);
-        results[`sync_${sport}`] = syncResult;
-      } catch (err) {
-        console.error(`[Cron] Sync failed for ${sport}:`, err);
-        results[`sync_${sport}`] = {
-          error: err instanceof Error ? err.message : "Unknown error",
-        };
-      }
-    }
-
-    // 2. Refresh upcoming games with odds
+    // 1. FIRST: Refresh upcoming games with odds
+    // This captures today's spreads/totals BEFORE games start, so when they
+    // complete later, syncCompletedGames can look up the pre-game odds.
     for (const sport of SPORTS) {
       try {
         const refreshResult = await refreshUpcomingGames(sport);
@@ -62,6 +59,21 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         console.error(`[Cron] Refresh failed for ${sport}:`, err);
         results[`refresh_${sport}`] = {
+          error: err instanceof Error ? err.message : "Unknown error",
+        };
+      }
+    }
+
+    // 2. THEN: Sync yesterday's completed games
+    // lookupUpcomingGameOdds() searches for odds captured in step 1 (or
+    // from a previous cron run) using a ±1 day date window.
+    for (const sport of SPORTS) {
+      try {
+        const syncResult = await syncCompletedGames(sport);
+        results[`sync_${sport}`] = syncResult;
+      } catch (err) {
+        console.error(`[Cron] Sync failed for ${sport}:`, err);
+        results[`sync_${sport}`] = {
           error: err instanceof Error ? err.message : "Unknown error",
         };
       }

@@ -78,9 +78,11 @@ export async function refreshUpcomingGames(sport: Sport): Promise<RefreshResult>
     }
   }
 
-  // Clean up old games (older than 1 day)
+  // Clean up old games (older than 3 days)
+  // Keep a 3-day window so completed-game sync can still find pre-game odds
+  // even if the cron runs a day late or timezone offsets cause date mismatches
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 1);
+  cutoff.setDate(cutoff.getDate() - 3);
   const { count: cleaned } = await prisma.upcomingGame.deleteMany({
     where: {
       sport,
@@ -174,6 +176,12 @@ export async function syncCompletedGames(
       gameDate,
     );
 
+    // Use UpcomingGame odds first, fall back to inline scoreboard odds
+    const spread =
+      upcomingOdds?.spread ?? game.inlineOdds?.spread ?? null;
+    const overUnder =
+      upcomingOdds?.overUnder ?? game.inlineOdds?.overUnder ?? null;
+
     try {
       const success = await insertCompletedGame(
         sport,
@@ -184,8 +192,8 @@ export async function syncCompletedGames(
         gameDate,
         game.homeTeam.rank,
         game.awayTeam.rank,
-        upcomingOdds?.spread ?? null,
-        upcomingOdds?.overUnder ?? null,
+        spread,
+        overUnder,
       );
       if (success) inserted++;
       else skipped++;
