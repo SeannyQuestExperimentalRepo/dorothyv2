@@ -1029,14 +1029,15 @@ export function parseQueryLocal(query: string): TrendQuery | null {
   // --- Detect perspective ---------------------------------------------------
   let perspective: Perspective | undefined;
 
-  if (/\bhome\b/.test(q)) {
-    perspective = "home";
-  } else if (/\baway\b/.test(q) || /\broad\b/.test(q)) {
-    perspective = "away";
-  } else if (/\bfavou?rites?\b/.test(q) || /\bchalk\b/.test(q)) {
+  // Check favorite/underdog first (more specific than home/away)
+  if (/\bfavou?rites?\b/.test(q) || /\bchalk\b/.test(q)) {
     perspective = "favorite";
   } else if (/\bunderdogs?\b/.test(q) || /\bpuppy\b/.test(q)) {
     perspective = "underdog";
+  } else if (/\bhome\b/.test(q)) {
+    perspective = "home";
+  } else if (/\baway\b/.test(q) || /\broad\b/.test(q)) {
+    perspective = "away";
   } else if (team) {
     perspective = "team";
   }

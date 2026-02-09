@@ -39,4 +39,5 @@ data/raw/
 data/*-staging.json
 data/*-staging.csv
 data/nfl-player-games.json
+data/player-matchup-index.json
 *.xlsx
