@@ -110,8 +110,8 @@ export interface SyncResult {
  * Fetch yesterday's completed games from ESPN scoreboard and insert into
  * the appropriate game table (NFLGame, NCAAFGame, NCAAMBGame).
  *
- * Uses team canonical names to look up team IDs, then inserts with
- * createMany({ skipDuplicates: true }) to avoid duplicating existing games.
+ * Uses batched DB operations: resolves teams sequentially (may create),
+ * then batch-finds existing games and batch-creates new ones.
  */
 export async function syncCompletedGames(
   sport: Sport,
@@ -135,29 +135,26 @@ export async function syncCompletedGames(
 
   // Load team ID map
   const teamIdMap = await getTeamIdMap();
-  let inserted = 0;
   let skipped = 0;
 
+  // Phase 1: Resolve team IDs sequentially (may create teams) and prepare game data
+  interface PreparedGame {
+    homeTeamId: number;
+    awayTeamId: number;
+    homeScore: number;
+    awayScore: number;
+    gameDate: Date;
+    homeRank: number | null;
+    awayRank: number | null;
+    homeCanonical: string;
+    awayCanonical: string;
+    inlineSpread: number | null;
+    inlineOverUnder: number | null;
+  }
+
+  const prepared: PreparedGame[] = [];
+
   for (const game of completed) {
-    const homeCanonical = mapTeamToCanonical(game.homeTeam, sport);
-    const awayCanonical = mapTeamToCanonical(game.awayTeam, sport);
-
-    if (!homeCanonical || !awayCanonical) {
-      skipped++;
-      continue;
-    }
-
-    const homeId = teamIdMap.get(`${sport}:${homeCanonical}`);
-    const awayId = teamIdMap.get(`${sport}:${awayCanonical}`);
-
-    if (!homeId || !awayId) {
-      console.warn(
-        `[ESPN Sync] Missing team ID: ${homeCanonical}=${homeId}, ${awayCanonical}=${awayId}`,
-      );
-      skipped++;
-      continue;
-    }
-
     const homeScore = game.homeTeam.score;
     const awayScore = game.awayTeam.score;
 
@@ -166,43 +163,188 @@ export async function syncCompletedGames(
       continue;
     }
 
-    const gameDate = new Date(game.date);
+    const homeId = await resolveTeamId(game.homeTeam, sport, teamIdMap);
+    const awayId = await resolveTeamId(game.awayTeam, sport, teamIdMap);
 
-    // Look up pre-game odds from UpcomingGame table (captured before game started)
-    const upcomingOdds = await lookupUpcomingGameOdds(
-      sport,
-      homeCanonical,
-      awayCanonical,
-      gameDate,
-    );
-
-    // Use UpcomingGame odds first, fall back to inline scoreboard odds
-    const spread =
-      upcomingOdds?.spread ?? game.inlineOdds?.spread ?? null;
-    const overUnder =
-      upcomingOdds?.overUnder ?? game.inlineOdds?.overUnder ?? null;
-
-    try {
-      const success = await insertCompletedGame(
-        sport,
-        homeId,
-        awayId,
-        homeScore,
-        awayScore,
-        gameDate,
-        game.homeTeam.rank,
-        game.awayTeam.rank,
-        spread,
-        overUnder,
-      );
-      if (success) inserted++;
-      else skipped++;
-    } catch (err) {
-      console.warn(
-        `[ESPN Sync] Insert failed for ${awayCanonical} @ ${homeCanonical}:`,
-        err,
-      );
+    if (!homeId || !awayId) {
       skipped++;
+      continue;
+    }
+
+    prepared.push({
+      homeTeamId: homeId,
+      awayTeamId: awayId,
+      homeScore,
+      awayScore,
+      gameDate: new Date(game.date),
+      homeRank: game.homeTeam.rank,
+      awayRank: game.awayTeam.rank,
+      homeCanonical: mapTeamToCanonical(game.homeTeam, sport) ?? game.homeTeam.displayName,
+      awayCanonical: mapTeamToCanonical(game.awayTeam, sport) ?? game.awayTeam.displayName,
+      inlineSpread: game.inlineOdds?.spread ?? null,
+      inlineOverUnder: game.inlineOdds?.overUnder ?? null,
+    });
+  }
+
+  if (prepared.length === 0) {
+    return { sport, fetched: games.length, inserted: 0, skipped };
+  }
+
+  // Phase 2: Batch lookup pre-game odds from UpcomingGame table
+  // Build date ranges for all games, then fetch matching upcoming records in one query
+  const minDate = new Date(Math.min(...prepared.map((g) => g.gameDate.getTime())));
+  const maxDate = new Date(Math.max(...prepared.map((g) => g.gameDate.getTime())));
+  const rangeStart = new Date(minDate);
+  rangeStart.setDate(rangeStart.getDate() - 1);
+  const rangeEnd = new Date(maxDate);
+  rangeEnd.setDate(rangeEnd.getDate() + 1);
+
+  const upcomingRecords = await prisma.upcomingGame.findMany({
+    where: {
+      sport,
+      gameDate: { gte: rangeStart, lte: rangeEnd },
+    },
+    select: { homeTeam: true, awayTeam: true, gameDate: true, spread: true, overUnder: true },
+  });
+
+  // Index upcoming records for fast lookup
+  const oddsMap = new Map<string, { spread: number | null; overUnder: number | null }>();
+  for (const u of upcomingRecords) {
+    // Key by home+away+date (date normalized to YYYY-MM-DD)
+    const dateKey = u.gameDate.toISOString().split("T")[0];
+    oddsMap.set(`${u.homeTeam}|${u.awayTeam}|${dateKey}`, { spread: u.spread, overUnder: u.overUnder });
+    // Also store with ±1 day for timezone tolerance
+    const dayBefore = new Date(u.gameDate);
+    dayBefore.setDate(dayBefore.getDate() - 1);
+    const dayAfter = new Date(u.gameDate);
+    dayAfter.setDate(dayAfter.getDate() + 1);
+    oddsMap.set(`${u.homeTeam}|${u.awayTeam}|${dayBefore.toISOString().split("T")[0]}`, { spread: u.spread, overUnder: u.overUnder });
+    oddsMap.set(`${u.homeTeam}|${u.awayTeam}|${dayAfter.toISOString().split("T")[0]}`, { spread: u.spread, overUnder: u.overUnder });
+  }
+
+  // Phase 3: Batch find existing games (one query per sport)
+  const dupeConditions = prepared.map((g) => ({
+    gameDate: g.gameDate,
+    homeTeamId: g.homeTeamId,
+    awayTeamId: g.awayTeamId,
+  }));
+
+  const existingSet = new Set<string>();
+  const makeKey = (gameDate: Date, homeTeamId: number, awayTeamId: number) =>
+    `${gameDate.toISOString()}|${homeTeamId}|${awayTeamId}`;
+
+  if (sport === "NFL") {
+    const existing = await prisma.nFLGame.findMany({
+      where: { OR: dupeConditions },
+      select: { gameDate: true, homeTeamId: true, awayTeamId: true },
+    });
+    for (const e of existing) existingSet.add(makeKey(e.gameDate, e.homeTeamId, e.awayTeamId));
+  } else if (sport === "NCAAF") {
+    const existing = await prisma.nCAAFGame.findMany({
+      where: { OR: dupeConditions },
+      select: { gameDate: true, homeTeamId: true, awayTeamId: true },
+    });
+    for (const e of existing) existingSet.add(makeKey(e.gameDate, e.homeTeamId, e.awayTeamId));
+  } else if (sport === "NCAAMB") {
+    const existing = await prisma.nCAAMBGame.findMany({
+      where: { OR: dupeConditions },
+      select: { gameDate: true, homeTeamId: true, awayTeamId: true },
+    });
+    for (const e of existing) existingSet.add(makeKey(e.gameDate, e.homeTeamId, e.awayTeamId));
+  }
+
+  // Phase 4: Filter out duplicates, build insert data, and batch create
+  const newGames = prepared.filter(
+    (g) => !existingSet.has(makeKey(g.gameDate, g.homeTeamId, g.awayTeamId)),
+  );
+  skipped += prepared.length - newGames.length;
+
+  let inserted = 0;
+
+  if (newGames.length > 0) {
+    if (sport === "NFL") {
+      const data = newGames.map((g) => {
+        const dateKey = g.gameDate.toISOString().split("T")[0];
+        const odds = oddsMap.get(`${g.homeCanonical}|${g.awayCanonical}|${dateKey}`);
+        const spread = odds?.spread ?? g.inlineSpread;
+        const overUnder = odds?.overUnder ?? g.inlineOverUnder;
+        const season = getSeason(g.gameDate, sport);
+        const scoreDifference = g.homeScore - g.awayScore;
+        return {
+          season,
+          week: getWeek(g.gameDate, sport, season),
+          dayOfWeek: g.gameDate.toLocaleDateString("en-US", { weekday: "long" }),
+          gameDate: g.gameDate,
+          homeTeamId: g.homeTeamId,
+          awayTeamId: g.awayTeamId,
+          homeScore: g.homeScore,
+          awayScore: g.awayScore,
+          scoreDifference,
+          winnerId: scoreDifference > 0 ? g.homeTeamId : scoreDifference < 0 ? g.awayTeamId : null,
+          spread,
+          overUnder,
+          spreadResult: calculateSpreadResult(g.homeScore, g.awayScore, spread),
+          ouResult: calculateOUResult(g.homeScore, g.awayScore, overUnder),
+        };
+      });
+      const result = await prisma.nFLGame.createMany({ data, skipDuplicates: true });
+      inserted = result.count;
+    } else if (sport === "NCAAF") {
+      const data = newGames.map((g) => {
+        const dateKey = g.gameDate.toISOString().split("T")[0];
+        const odds = oddsMap.get(`${g.homeCanonical}|${g.awayCanonical}|${dateKey}`);
+        const spread = odds?.spread ?? g.inlineSpread;
+        const overUnder = odds?.overUnder ?? g.inlineOverUnder;
+        const season = getSeason(g.gameDate, sport);
+        const scoreDifference = g.homeScore - g.awayScore;
+        return {
+          season,
+          week: getWeek(g.gameDate, sport, season),
+          dayOfWeek: g.gameDate.toLocaleDateString("en-US", { weekday: "long" }),
+          gameDate: g.gameDate,
+          homeTeamId: g.homeTeamId,
+          awayTeamId: g.awayTeamId,
+          homeScore: g.homeScore,
+          awayScore: g.awayScore,
+          scoreDifference,
+          winnerId: scoreDifference > 0 ? g.homeTeamId : scoreDifference < 0 ? g.awayTeamId : null,
+          homeRank: g.homeRank,
+          awayRank: g.awayRank,
+          spread,
+          overUnder,
+          spreadResult: calculateSpreadResult(g.homeScore, g.awayScore, spread),
+          ouResult: calculateOUResult(g.homeScore, g.awayScore, overUnder),
+        };
+      });
+      const result = await prisma.nCAAFGame.createMany({ data, skipDuplicates: true });
+      inserted = result.count;
+    } else if (sport === "NCAAMB") {
+      const data = newGames.map((g) => {
+        const dateKey = g.gameDate.toISOString().split("T")[0];
+        const odds = oddsMap.get(`${g.homeCanonical}|${g.awayCanonical}|${dateKey}`);
+        const spread = odds?.spread ?? g.inlineSpread;
+        const overUnder = odds?.overUnder ?? g.inlineOverUnder;
+        const season = getSeason(g.gameDate, sport);
+        const scoreDifference = g.homeScore - g.awayScore;
+        return {
+          season,
+          gameDate: g.gameDate,
+          homeTeamId: g.homeTeamId,
+          awayTeamId: g.awayTeamId,
+          homeScore: g.homeScore,
+          awayScore: g.awayScore,
+          scoreDifference,
+          winnerId: scoreDifference > 0 ? g.homeTeamId : scoreDifference < 0 ? g.awayTeamId : null,
+          homeRank: g.homeRank,
+          awayRank: g.awayRank,
+          spread,
+          overUnder,
+          spreadResult: calculateSpreadResult(g.homeScore, g.awayScore, spread),
+          ouResult: calculateOUResult(g.homeScore, g.awayScore, overUnder),
+        };
+      });
+      const result = await prisma.nCAAMBGame.createMany({ data, skipDuplicates: true });
+      inserted = result.count;
     }
   }
 
@@ -241,36 +383,6 @@ export function calculateOUResult(
   return OUResult.PUSH;
 }
 
-/** Look up pre-game odds from UpcomingGame table for a completed game */
-async function lookupUpcomingGameOdds(
-  sport: Sport,
-  homeTeam: string,
-  awayTeam: string,
-  gameDate: Date,
-): Promise<{ spread: number | null; overUnder: number | null } | null> {
-  try {
-    // Match by sport + teams, allow ±1 day for timezone differences
-    const dayBefore = new Date(gameDate);
-    dayBefore.setDate(dayBefore.getDate() - 1);
-    const dayAfter = new Date(gameDate);
-    dayAfter.setDate(dayAfter.getDate() + 1);
-
-    const upcoming = await prisma.upcomingGame.findFirst({
-      where: {
-        sport,
-        homeTeam,
-        awayTeam,
-        gameDate: { gte: dayBefore, lte: dayAfter },
-      },
-      select: { spread: true, overUnder: true },
-    });
-
-    return upcoming;
-  } catch {
-    return null;
-  }
-}
-
 /** Approximate week number for NFL/NCAAF from game date and season */
 function getWeek(gameDate: Date, sport: Sport, season: number): string {
   if (sport === "NCAAMB") return "0"; // NCAAMB doesn't use weeks
@@ -294,6 +406,69 @@ async function getTeamIdMap(): Promise<Map<string, number>> {
     map.set(`${t.sport}:${t.name}`, t.id);
   }
   return map;
+}
+
+/**
+ * Resolve an ESPN team to a DB team ID, creating the team if necessary.
+ *
+ * Strategy:
+ * 1. Try mapTeamToCanonical() → teamIdMap (existing D1 teams)
+ * 2. Search DB by ESPN display name (may have been created in a previous sync)
+ * 3. Create a new Team record for non-D1 / unknown opponents
+ *
+ * Returns the team ID, or null only if creation fails.
+ */
+async function resolveTeamId(
+  espnTeam: { espnId: string; displayName: string; shortName: string; abbreviation: string },
+  sport: Sport,
+  teamIdMap: Map<string, number>,
+): Promise<number | null> {
+  // 1. Standard canonical mapping (covers all known D1 teams)
+  const canonical = mapTeamToCanonical(
+    { ...espnTeam, score: 0, rank: null },
+    sport,
+  );
+  if (canonical) {
+    const id = teamIdMap.get(`${sport}:${canonical}`);
+    if (id) return id;
+  }
+
+  // 2. Check if we already created this team in a previous run (by display name)
+  const existing = await prisma.team.findFirst({
+    where: { sport, name: espnTeam.displayName },
+    select: { id: true },
+  });
+  if (existing) {
+    // Cache for future lookups in this batch
+    teamIdMap.set(`${sport}:${espnTeam.displayName}`, existing.id);
+    return existing.id;
+  }
+
+  // 3. Create a new Team record for this non-D1 / unknown opponent
+  try {
+    const newTeam = await prisma.team.create({
+      data: {
+        name: espnTeam.displayName,
+        abbreviation: espnTeam.abbreviation,
+        sport,
+        conference: "Non-D1",
+        city: "Unknown",
+        state: "Unknown",
+      },
+    });
+    // Cache for future lookups
+    teamIdMap.set(`${sport}:${espnTeam.displayName}`, newTeam.id);
+    console.log(
+      `[ESPN Sync] Created non-D1 team: "${espnTeam.displayName}" (${espnTeam.abbreviation}) → ID ${newTeam.id}`,
+    );
+    return newTeam.id;
+  } catch (err) {
+    console.warn(
+      `[ESPN Sync] Failed to create team "${espnTeam.displayName}":`,
+      err,
+    );
+    return null;
+  }
 }
 
 /**
@@ -499,7 +674,6 @@ export async function syncTeamSeason(
   }
 
   const teamIdMap = await getTeamIdMap();
-  const { mapTeamToCanonical: mapCanon } = await import("./espn-api");
   let inserted = 0;
   let skipped = 0;
 
@@ -534,12 +708,8 @@ export async function syncTeamSeason(
         : null,
     };
 
-    const homeCanonical = mapCanon(homeESPN, sport);
-    const awayCanonical = mapCanon(awayESPN, sport);
-    if (!homeCanonical || !awayCanonical) { skipped++; continue; }
-
-    const homeId = teamIdMap.get(`${sport}:${homeCanonical}`);
-    const awayId = teamIdMap.get(`${sport}:${awayCanonical}`);
+    const homeId = await resolveTeamId(homeESPN, sport, teamIdMap);
+    const awayId = await resolveTeamId(awayESPN, sport, teamIdMap);
     if (!homeId || !awayId) { skipped++; continue; }
 
     const gameDate = new Date(event.date);
