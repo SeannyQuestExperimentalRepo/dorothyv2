@@ -13,7 +13,6 @@
  * returned so the UI always has something to display.
  */
 
-import OpenAI from "openai";
 import type {
   TrendQuery,
   SportOrAll,
@@ -458,6 +457,7 @@ export async function parseNaturalLanguageQuery(
       return fallbackResult(query);
     }
 
+    const { default: OpenAI } = await import("openai");
     const openai = new OpenAI({ apiKey });
 
     const response = await openai.chat.completions.create({
