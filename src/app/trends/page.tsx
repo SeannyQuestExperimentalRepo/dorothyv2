@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { SignificanceBadge } from "@/components/trends/significance-badge";
+import { useAngles } from "@/hooks/use-angles";
 
 interface DiscoveredAngle {
   id: string;
@@ -66,46 +67,24 @@ function TrendsPageInner() {
   const [sport, setSport] = useState<SportFilter>(initialSport);
   const [minStrength, setMinStrength] = useState<StrengthFilter>("all");
   const [team, setTeam] = useState("");
-  const [angles, setAngles] = useState<DiscoveredAngle[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
+  // Track submitted params separately so query only fires on Discover click
+  const [submittedParams, setSubmittedParams] = useState({
+    sport: initialSport as string,
+    team: "",
+    minStrength: undefined as string | undefined,
+  });
 
-  const discover = async () => {
-    setLoading(true);
-    setError(null);
-    setHasSearched(true);
+  const { data, isLoading: loading, error: queryError, isFetched } = useAngles(submittedParams);
+  const angles: DiscoveredAngle[] = data?.angles ?? [];
+  const error = queryError ? (queryError as Error).message : null;
 
-    try {
-      const params = new URLSearchParams({ sport });
-      if (team.trim()) params.set("team", team.trim());
-      if (minStrength !== "all") params.set("minStrength", minStrength);
-      params.set("maxResults", "20");
-
-      const res = await fetch(`/api/trends/angles?${params}`);
-      const data = await res.json();
-
-      if (data.success) {
-        setAngles(data.data.angles);
-      } else {
-        setError(data.error || "Failed to discover angles");
-        setAngles([]);
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred",
-      );
-      setAngles([]);
-    } finally {
-      setLoading(false);
-    }
+  const discover = () => {
+    setSubmittedParams({
+      sport,
+      team: team.trim() || "",
+      minStrength: minStrength !== "all" ? minStrength : undefined,
+    });
   };
-
-  // Auto-discover on mount
-  useEffect(() => {
-    discover();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -216,7 +195,7 @@ function TrendsPageInner() {
       )}
 
       {/* No Results */}
-      {!loading && hasSearched && angles.length === 0 && !error && (
+      {!loading && isFetched && angles.length === 0 && !error && (
         <div className="py-12 text-center">
           <p className="text-muted-foreground">
             No significant angles found. Try a different sport or team.

@@ -1,15 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-interface DatasetStats {
-  nfl: { totalGames: number; seasons: [number, number] | null };
-  ncaaf: { totalGames: number; seasons: [number, number] | null };
-  ncaamb: { totalGames: number; seasons: [number, number] | null };
-  total: number;
-}
+import { useStats } from "@/hooks/use-stats";
 
 const EXAMPLE_QUERIES = [
   { label: "Home underdogs primetime NFL", icon: "\ud83c\udfc8" },
@@ -100,16 +94,7 @@ const FEATURES = [
 export default function Home() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [stats, setStats] = useState<DatasetStats | null>(null);
-
-  useEffect(() => {
-    fetch("/api/trends/stats")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) setStats(data.data);
-      })
-      .catch(() => {});
-  }, []);
+  const { data: stats } = useStats();
 
   const handleSearch = () => {
     if (query.trim()) {

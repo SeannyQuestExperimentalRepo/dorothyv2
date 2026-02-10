@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import GameCard from "./game-card";
+import { useUpcomingGames } from "@/hooks/use-upcoming-games";
 
 interface UpcomingGame {
   id: number;
@@ -31,42 +32,17 @@ export default function UpcomingGamesSidebar() {
   const detectedSport = sportFromPath(pathname);
 
   const [activeSport, setActiveSport] = useState<SportFilter>(detectedSport);
-  const [games, setGames] = useState<UpcomingGame[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   // Sync active sport with path changes
   useEffect(() => {
     setActiveSport(sportFromPath(pathname));
   }, [pathname]);
 
-  const fetchGames = useCallback(async () => {
-    try {
-      const url = activeSport
-        ? `/api/games/upcoming?sport=${activeSport}`
-        : `/api/games/upcoming`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success) {
-        setGames(data.data.games);
-        setLastUpdated(data.data.lastUpdated);
-        setError(null);
-      } else {
-        setError(data.error || "Failed to load games");
-      }
-    } catch {
-      setError("Failed to load games");
-    } finally {
-      setLoading(false);
-    }
-  }, [activeSport]);
-
-  useEffect(() => {
-    setLoading(true);
-    fetchGames();
-  }, [fetchGames]);
+  const { data, isLoading: loading, error: queryError, refetch } = useUpcomingGames(activeSport);
+  const games: UpcomingGame[] = data?.games ?? [];
+  const lastUpdated = data?.lastUpdated ?? null;
+  const error = queryError ? (queryError as Error).message : null;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -78,9 +54,9 @@ export default function UpcomingGamesSidebar() {
           fetch(`/api/games/refresh?sport=${s}`, { method: "POST" }),
         ),
       );
-      await fetchGames();
+      await refetch();
     } catch {
-      setError("Refresh failed");
+      // Error handled by query
     } finally {
       setRefreshing(false);
     }

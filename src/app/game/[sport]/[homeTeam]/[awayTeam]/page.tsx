@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useMatchup } from "@/hooks/use-matchup";
 import { MatchupHeader } from "@/components/matchup/matchup-header";
 import { TeamComparison } from "@/components/matchup/team-comparison";
 import { HeadToHead } from "@/components/matchup/head-to-head";
@@ -130,36 +130,10 @@ export default function GameMatchupPage() {
   const homeTeam = decodeURIComponent(params.homeTeam as string);
   const awayTeam = decodeURIComponent(params.awayTeam as string);
 
-  const [data, setData] = useState<MatchupData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [durationMs, setDurationMs] = useState<number | null>(null);
-
-  useEffect(() => {
-    async function fetchMatchup() {
-      setLoading(true);
-      setError(null);
-      try {
-        const url = `/api/games/matchup?sport=${encodeURIComponent(sport)}&home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`;
-        const res = await fetch(url);
-        const json = await res.json();
-        if (json.success) {
-          setData(json.data);
-          setDurationMs(json.meta.durationMs);
-        } else {
-          setError(json.error || "Failed to load matchup data");
-        }
-      } catch {
-        setError("Failed to load matchup data");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (sport && homeTeam && awayTeam) {
-      fetchMatchup();
-    }
-  }, [sport, homeTeam, awayTeam]);
+  const { data: matchupResult, isLoading: loading, error: queryError } = useMatchup(sport, homeTeam, awayTeam);
+  const data: MatchupData | null = matchupResult?.data ?? null;
+  const durationMs: number | null = matchupResult?.durationMs ?? null;
+  const error = queryError ? (queryError as Error).message : null;
 
   if (loading) {
     return (

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, Suspense } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { TrendResults } from "@/components/trends/trend-results";
+import { useTrendQuery } from "@/hooks/use-trend-query";
 
 const EXAMPLE_QUERIES = [
   "Home underdogs in primetime NFL",
@@ -14,18 +15,6 @@ const EXAMPLE_QUERIES = [
   "Big 12 conference games NCAAF",
   "NFL playoffs underdogs",
 ];
-
-type QueryType = "game" | "player";
-
-interface SearchState {
-  loading: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  result: any | null;
-  error: string | null;
-  interpretation: string | null;
-  queryType: QueryType | null;
-  durationMs: number | null;
-}
 
 export default function SearchPage() {
   return (
@@ -43,18 +32,19 @@ export default function SearchPage() {
 
 function SearchPageInner() {
   const [query, setQuery] = useState("");
-  const [state, setState] = useState<SearchState>({
-    loading: false,
-    result: null,
-    error: null,
-    interpretation: null,
-    queryType: null,
-    durationMs: null,
-  });
+  const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
   const hasRunInitial = useRef(false);
+
+  const { data, isLoading: loading, error: queryError } = useTrendQuery(
+    submittedQuery ? { query: submittedQuery } : null,
+  );
+
+  const result = data?.result ?? null;
+  const interpretation = data?.interpretation ?? null;
+  const error = queryError ? (queryError as Error).message : null;
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -65,125 +55,15 @@ function SearchPageInner() {
     if (initialQuery && !hasRunInitial.current) {
       hasRunInitial.current = true;
       setQuery(initialQuery);
-      handleSearch(initialQuery);
+      setSubmittedQuery(initialQuery);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuery]);
 
-  const handleSearch = useCallback(
-    async (searchQuery?: string) => {
-      const q = (searchQuery || query).trim();
-      if (!q) return;
-
-      setState({
-        loading: true,
-        result: null,
-        error: null,
-        interpretation: null,
-        queryType: null,
-        durationMs: null,
-      });
-
-      const start = performance.now();
-
-      try {
-        // Step 1: Parse the query with NLP
-        const parseRes = await fetch("/api/trends/parse", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q }),
-        });
-
-        if (parseRes.ok) {
-          const parsed = await parseRes.json();
-          if (parsed.success && parsed.data) {
-            const { trendQuery, playerTrendQuery, interpretation, queryType } =
-              parsed.data;
-
-            // Step 2: Execute the parsed query (use playerTrendQuery for player searches)
-            const endpoint =
-              queryType === "player" ? "/api/trends/players" : "/api/trends";
-            const queryPayload =
-              queryType === "player" && playerTrendQuery
-                ? playerTrendQuery
-                : trendQuery;
-            const execRes = await fetch(endpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(queryPayload),
-            });
-
-            const execData = await execRes.json();
-            const durationMs = Math.round(performance.now() - start);
-
-            if (execData.success) {
-              setState({
-                loading: false,
-                result: execData,
-                error: null,
-                interpretation,
-                queryType,
-                durationMs,
-              });
-              return;
-            } else {
-              setState({
-                loading: false,
-                result: null,
-                error: execData.error || "Query returned no results",
-                interpretation,
-                queryType,
-                durationMs,
-              });
-              return;
-            }
-          }
-        }
-
-        // Fallback: direct API call with basic params
-        const directRes = await fetch(
-          `/api/trends?sport=NFL&team=${encodeURIComponent(q)}`,
-        );
-        const directData = await directRes.json();
-        const durationMs = Math.round(performance.now() - start);
-
-        if (directData.success) {
-          setState({
-            loading: false,
-            result: directData,
-            error: null,
-            interpretation: `Showing trends for "${q}"`,
-            queryType: "game",
-            durationMs,
-          });
-        } else {
-          setState({
-            loading: false,
-            result: null,
-            error:
-              directData.error || "Could not interpret your query. Try something like: 'Home underdogs NFL'",
-            interpretation: null,
-            queryType: null,
-            durationMs,
-          });
-        }
-      } catch (err) {
-        const durationMs = Math.round(performance.now() - start);
-        setState({
-          loading: false,
-          result: null,
-          error:
-            err instanceof Error
-              ? err.message
-              : "An unexpected error occurred",
-          interpretation: null,
-          queryType: null,
-          durationMs,
-        });
-      }
-    },
-    [query],
-  );
+  const handleSearch = (searchQuery?: string) => {
+    const q = (searchQuery || query).trim();
+    if (!q) return;
+    setSubmittedQuery(q);
+  };
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -219,14 +99,14 @@ function SearchPageInner() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            disabled={state.loading}
+            disabled={loading}
           />
           <button
             onClick={() => handleSearch()}
-            disabled={state.loading || !query.trim()}
+            disabled={loading || !query.trim()}
             className="mr-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
-            {state.loading ? (
+            {loading ? (
               <span className="flex items-center gap-2">
                 <svg
                   className="h-4 w-4 animate-spin"
@@ -259,7 +139,7 @@ function SearchPageInner() {
       </div>
 
       {/* Example Queries */}
-      {!state.result && !state.loading && !state.error && (
+      {!result && !loading && !error && (
         <div className="mt-6">
           <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Try these examples
@@ -282,7 +162,7 @@ function SearchPageInner() {
       )}
 
       {/* Loading State */}
-      {state.loading && (
+      {loading && (
         <div className="mt-12 flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           <p className="text-sm text-muted-foreground">
@@ -292,24 +172,19 @@ function SearchPageInner() {
       )}
 
       {/* Error State */}
-      {state.error && !state.loading && (
+      {error && !loading && (
         <div className="mt-8 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
-          <p className="text-sm text-destructive">{state.error}</p>
-          {state.interpretation && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Interpreted as: {state.interpretation}
-            </p>
-          )}
+          <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
 
       {/* Results */}
-      {state.result && !state.loading && (
+      {result && !loading && (
         <div className="mt-8">
           <TrendResults
-            data={state.result.data}
-            meta={state.result.meta}
-            interpretation={state.interpretation || undefined}
+            data={result.data}
+            meta={result.meta}
+            interpretation={interpretation || undefined}
           />
         </div>
       )}
