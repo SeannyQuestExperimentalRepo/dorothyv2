@@ -53,11 +53,42 @@ function formatDate(d: Date): string {
   return d.toISOString().split("T")[0];
 }
 
+// ─── Filter Types ───────────────────────────────────────────────────────────
+
+export interface DBLoadFilters {
+  teamId?: number;
+  seasonRange?: [number, number];
+}
+
+function buildWhereClause(filters?: DBLoadFilters) {
+  if (!filters) return undefined;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: Record<string, any> = {};
+
+  if (filters.teamId != null) {
+    where.OR = [
+      { homeTeamId: filters.teamId },
+      { awayTeamId: filters.teamId },
+    ];
+  }
+
+  if (filters.seasonRange) {
+    where.season = {
+      gte: filters.seasonRange[0],
+      lte: filters.seasonRange[1],
+    };
+  }
+
+  return Object.keys(where).length > 0 ? where : undefined;
+}
+
 // ─── DB Query Functions (no JOINs) ───────────────────────────────────────────
 
-async function loadNFLFromDB(): Promise<TrendGame[]> {
+async function loadNFLFromDB(filters?: DBLoadFilters): Promise<TrendGame[]> {
   const teams = await getTeamMap();
   const rows = await prisma.nFLGame.findMany({
+    where: buildWhereClause(filters),
     orderBy: { gameDate: "desc" },
   });
 
@@ -144,9 +175,10 @@ async function loadNFLFromDB(): Promise<TrendGame[]> {
   });
 }
 
-async function loadNCAAFFromDB(): Promise<TrendGame[]> {
+async function loadNCAAFFromDB(filters?: DBLoadFilters): Promise<TrendGame[]> {
   const teams = await getTeamMap();
   const rows = await prisma.nCAAFGame.findMany({
+    where: buildWhereClause(filters),
     orderBy: { gameDate: "desc" },
   });
 
@@ -231,9 +263,10 @@ async function loadNCAAFFromDB(): Promise<TrendGame[]> {
   });
 }
 
-async function loadNCAAMBFromDB(): Promise<TrendGame[]> {
+async function loadNCAAMBFromDB(filters?: DBLoadFilters): Promise<TrendGame[]> {
   const teams = await getTeamMap();
   const rows = await prisma.nCAAMBGame.findMany({
+    where: buildWhereClause(filters),
     orderBy: { gameDate: "desc" },
   });
 
@@ -323,18 +356,63 @@ async function loadNCAAMBFromDB(): Promise<TrendGame[]> {
 
 /**
  * Load games for a single sport from PostgreSQL.
+ * When filters are provided, queries DB directly with WHERE clauses.
  */
-export async function loadGamesBySportFromDB(sport: Sport): Promise<TrendGame[]> {
+export async function loadGamesBySportFromDB(sport: Sport, filters?: DBLoadFilters): Promise<TrendGame[]> {
   switch (sport) {
     case "NFL":
-      return loadNFLFromDB();
+      return loadNFLFromDB(filters);
     case "NCAAF":
-      return loadNCAAFFromDB();
+      return loadNCAAFFromDB(filters);
     case "NCAAMB":
-      return loadNCAAMBFromDB();
+      return loadNCAAMBFromDB(filters);
     default:
       return [];
   }
+}
+
+/**
+ * Look up a team ID by name (case-insensitive partial match).
+ * Returns the first matching team's ID, or null if not found.
+ */
+export async function resolveTeamIdByName(
+  teamName: string,
+  sport?: Sport,
+): Promise<number | null> {
+  const map = await getTeamMap();
+  const lower = teamName.toLowerCase();
+
+  // Exact match first
+  let exactMatch: number | null = null;
+  map.forEach((info, id) => {
+    if (exactMatch == null && info.name.toLowerCase() === lower) {
+      exactMatch = id;
+    }
+  });
+  if (exactMatch != null) return exactMatch;
+
+  // Partial match
+  let partialMatch: number | null = null;
+  map.forEach((info, id) => {
+    if (partialMatch == null && info.name.toLowerCase().includes(lower)) {
+      partialMatch = id;
+    }
+  });
+  if (partialMatch != null) return partialMatch;
+
+  // If sport provided, try DB query with contains for robustness
+  if (sport) {
+    const team = await prisma.team.findFirst({
+      where: {
+        sport,
+        name: { contains: teamName, mode: "insensitive" },
+      },
+      select: { id: true },
+    });
+    return team?.id ?? null;
+  }
+
+  return null;
 }
 
 /**

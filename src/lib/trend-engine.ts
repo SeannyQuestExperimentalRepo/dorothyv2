@@ -17,6 +17,8 @@
 
 import {
   loadGamesBySportFromDB,
+  resolveTeamIdByName,
+  type DBLoadFilters,
 } from "./db-trend-loader";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -1105,8 +1107,27 @@ export function clearGameCache(): void {
 /**
  * Execute a trend query using cached game data.
  * Preferred for API routes where multiple queries may run per request.
+ *
+ * When a team is specified and sport != ALL, bypasses the full cache and
+ * queries the DB directly with WHERE clauses (loading hundreds of rows
+ * instead of tens of thousands).
  */
 export async function executeTrendQueryCached(query: TrendQuery): Promise<TrendResult> {
+  // Team-specific queries with a single sport: go directly to DB with filters
+  if (query.team && query.sport !== "ALL") {
+    const teamId = await resolveTeamIdByName(query.team, query.sport);
+    if (teamId != null) {
+      const filters: DBLoadFilters = { teamId };
+      if (query.seasonRange) {
+        filters.seasonRange = query.seasonRange;
+      }
+      const games = await loadGamesBySportFromDB(query.sport, filters);
+      return executeTrendQuery(query, games);
+    }
+    // If team not found, fall through to full cache (teamMatches may do partial matching)
+  }
+
+  // Generic queries: use the full cache
   const games =
     query.sport === "ALL"
       ? await loadAllGamesCached()
