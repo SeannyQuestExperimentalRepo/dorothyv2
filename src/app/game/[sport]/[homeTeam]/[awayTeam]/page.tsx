@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useMatchup } from "@/hooks/use-matchup";
+import { useInjuries } from "@/hooks/use-injuries";
 import { MatchupHeader } from "@/components/matchup/matchup-header";
 
 const TeamComparison = dynamic(
@@ -20,6 +21,10 @@ const TrendAngles = dynamic(
 );
 const RecentGamesTable = dynamic(
   () => import("@/components/matchup/recent-games-table").then((m) => m.RecentGamesTable),
+  { ssr: false }
+);
+const InjuriesPanel = dynamic(
+  () => import("@/components/matchup/injuries-panel").then((m) => m.InjuriesPanel),
   { ssr: false }
 );
 
@@ -145,6 +150,7 @@ export default function GameMatchupPage() {
   const awayTeam = decodeURIComponent(params.awayTeam as string);
 
   const { data: matchupResult, isLoading: loading, error: queryError } = useMatchup(sport, homeTeam, awayTeam);
+  const { data: injuriesData, isLoading: injuriesLoading } = useInjuries(sport, homeTeam, awayTeam);
   const data: MatchupData | null = matchupResult?.data ?? null;
   const durationMs: number | null = matchupResult?.durationMs ?? null;
   const error = queryError ? (queryError as Error).message : null;
@@ -213,6 +219,16 @@ export default function GameMatchupPage() {
           overUnder={data.upcoming?.overUnder ?? null}
           moneylineHome={data.upcoming?.moneylineHome ?? null}
           moneylineAway={data.upcoming?.moneylineAway ?? null}
+        />
+
+        {/* Injury Report */}
+        <InjuriesPanel
+          homeTeam={homeTeam}
+          awayTeam={awayTeam}
+          homeInjuries={injuriesData?.home ?? []}
+          awayInjuries={injuriesData?.away ?? []}
+          lastUpdated={injuriesData?.lastUpdated ?? ""}
+          isLoading={injuriesLoading}
         />
 
         {/* Insight */}
