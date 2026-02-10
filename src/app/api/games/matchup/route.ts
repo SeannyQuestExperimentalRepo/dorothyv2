@@ -13,7 +13,7 @@ import {
   type GameContext,
 } from "@/lib/game-context-engine";
 import {
-  loadAllGamesCached,
+  loadGamesBySportCached,
   executeTrendQuery,
   type TrendQuery,
   type TrendGame,
@@ -116,27 +116,27 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // 0. Resolve team names to canonical form
-    // URL may carry ESPN display names from UpcomingGame, but game data uses
-    // canonical Team.name. Resolve both before any queries.
-    const canonHome = await resolveCanonicalName(homeTeam, sport);
-    const canonAway = await resolveCanonicalName(awayTeam, sport);
-
-    // 1. Get the upcoming game from DB (for live odds)
-    // Try both the original URL names AND canonical names (UpcomingGame may
-    // store either form depending on whether ESPN mapping succeeded).
+    // 0. Resolve team names + load upcoming game + load sport games in parallel.
+    // These are all independent DB operations — run concurrently.
     const sportEnum = sport as "NFL" | "NCAAF" | "NCAAMB";
-    let upcomingGame = await prisma.upcomingGame.findFirst({
-      where: {
-        sport: sportEnum,
-        homeTeam,
-        awayTeam,
-        gameDate: { gte: new Date() },
-      },
-      orderBy: { gameDate: "asc" },
-    });
+    const [canonHome, canonAway, upcomingByOriginal, sportGames] = await Promise.all([
+      resolveCanonicalName(homeTeam, sport),
+      resolveCanonicalName(awayTeam, sport),
+      prisma.upcomingGame.findFirst({
+        where: {
+          sport: sportEnum,
+          homeTeam,
+          awayTeam,
+          gameDate: { gte: new Date() },
+        },
+        orderBy: { gameDate: "asc" },
+      }),
+      // Load only this sport's games (not all 150K across 3 sports)
+      loadGamesBySportCached(sportEnum),
+    ]);
 
-    // If not found with original names, try canonical names
+    // If upcoming game not found with original names, try canonical names
+    let upcomingGame = upcomingByOriginal;
     if (!upcomingGame && (canonHome !== homeTeam || canonAway !== awayTeam)) {
       upcomingGame = await prisma.upcomingGame.findFirst({
         where: {
@@ -148,10 +148,6 @@ export async function GET(request: NextRequest) {
         orderBy: { gameDate: "asc" },
       });
     }
-
-    // 2. Load all games for trend analysis
-    const allGames = await loadAllGamesCached();
-    const sportGames = allGames.filter((g) => g.sport === sport);
 
     // 3. Build team trends for current season
     const now = new Date();
@@ -194,12 +190,12 @@ export async function GET(request: NextRequest) {
       canonHome,
       canonAway,
       currentSeason,
-      allGames,
+      sportGames,
     );
 
     const durationMs = Math.round(performance.now() - start);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         // Upcoming game info (live odds)
@@ -234,6 +230,13 @@ export async function GET(request: NextRequest) {
         durationMs,
       },
     });
+
+    // Cache at CDN for 5 min, serve stale for 10 min while revalidating
+    response.headers.set(
+      "Cache-Control",
+      "public, s-maxage=300, stale-while-revalidate=600",
+    );
+    return response;
   } catch (err) {
     console.error("[GET /api/games/matchup] Error:", err);
     return errorResponse(

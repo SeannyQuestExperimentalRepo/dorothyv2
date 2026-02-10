@@ -14,5 +14,8 @@ export function useMatchup(sport: string, homeTeam: string, awayTeam: string) {
     queryKey: ["matchup", sport, homeTeam, awayTeam],
     queryFn: () => fetchMatchup(sport, homeTeam, awayTeam),
     enabled: !!(sport && homeTeam && awayTeam),
+    staleTime: 10 * 60 * 1000, // 10 min — data only changes on daily cron
+    gcTime: 30 * 60 * 1000, // 30 min
+    refetchOnWindowFocus: false,
   });
 }

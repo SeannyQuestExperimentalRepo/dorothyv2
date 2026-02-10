@@ -1037,71 +1037,64 @@ export function buildQuery(
  * First call loads from PostgreSQL via Prisma; subsequent calls return cached data.
  * Call clearGameCache() to force a reload after data updates.
  */
-let gameCache: Map<Sport, TrendGame[]> | null = null;
-let cacheInitPromise: Promise<void> | null = null;
+/**
+ * Per-sport cache: each sport loads independently so requesting NFL
+ * doesn't block on NCAAF/NCAAMB loading. Shared promises prevent
+ * concurrent duplicate loads for the same sport.
+ */
+const sportCache: Map<Sport, TrendGame[]> = new Map();
+const sportLoadPromises: Map<Sport, Promise<TrendGame[]>> = new Map();
 
 /**
- * Initialize the game cache from PostgreSQL (if not already initialized).
- * Uses a shared promise to avoid concurrent initialization from multiple requests.
+ * Load one sport's games into cache (or return cached).
+ * Only queries PostgreSQL for the requested sport.
  */
-async function ensureCacheInitialized(): Promise<void> {
-  if (gameCache) return; // Already initialized
+async function ensureSportLoaded(sport: Sport): Promise<TrendGame[]> {
+  if (sportCache.has(sport)) return sportCache.get(sport)!;
 
-  if (!cacheInitPromise) {
-    cacheInitPromise = (async () => {
-      console.log("[trend-engine] Loading game data from PostgreSQL...");
+  if (!sportLoadPromises.has(sport)) {
+    sportLoadPromises.set(sport, (async () => {
       const start = performance.now();
-
-      const [nfl, ncaaf, ncaamb] = await Promise.all([
-        loadGamesBySportFromDB("NFL"),
-        loadGamesBySportFromDB("NCAAF"),
-        loadGamesBySportFromDB("NCAAMB"),
-      ]);
-
-      gameCache = new Map();
-      gameCache.set("NFL", nfl);
-      gameCache.set("NCAAF", ncaaf);
-      gameCache.set("NCAAMB", ncaamb);
-
-      const total = nfl.length + ncaaf.length + ncaamb.length;
+      const games = await loadGamesBySportFromDB(sport);
+      sportCache.set(sport, games);
       const durationMs = Math.round(performance.now() - start);
       console.log(
-        `[trend-engine] Loaded ${total.toLocaleString()} games from DB in ${durationMs}ms ` +
-        `(NFL: ${nfl.length}, NCAAF: ${ncaaf.length}, NCAAMB: ${ncaamb.length})`
+        `[trend-engine] Loaded ${games.length.toLocaleString()} ${sport} games in ${durationMs}ms`
       );
-    })();
+      return games;
+    })());
   }
 
-  await cacheInitPromise;
+  return sportLoadPromises.get(sport)!;
 }
 
 /**
  * Load all games with in-memory caching.
- * First call queries PostgreSQL; subsequent calls return cached data.
+ * Loads all 3 sports in parallel, each cached independently.
  */
 export async function loadAllGamesCached(): Promise<TrendGame[]> {
-  await ensureCacheInitialized();
-  return [
-    ...gameCache!.get("NFL")!,
-    ...gameCache!.get("NCAAF")!,
-    ...gameCache!.get("NCAAMB")!,
-  ];
+  const [nfl, ncaaf, ncaamb] = await Promise.all([
+    ensureSportLoaded("NFL"),
+    ensureSportLoaded("NCAAF"),
+    ensureSportLoaded("NCAAMB"),
+  ]);
+  return [...nfl, ...ncaaf, ...ncaamb];
 }
 
 /**
  * Load games for a single sport with caching.
+ * Only loads the requested sport — does NOT trigger loading other sports.
  */
 export async function loadGamesBySportCached(sport: Sport): Promise<TrendGame[]> {
-  await ensureCacheInitialized();
-  return gameCache!.get(sport) ?? [];
+  return ensureSportLoaded(sport);
 }
 
 /**
  * Clear the in-memory game cache. Call after data updates.
  */
 export function clearGameCache(): void {
-  gameCache = null;
-  cacheInitPromise = null;
+  sportCache.clear();
+  sportLoadPromises.clear();
 }
 
 /**

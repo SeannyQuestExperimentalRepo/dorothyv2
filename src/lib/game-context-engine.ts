@@ -15,6 +15,7 @@
 
 import {
   loadAllGamesCached,
+  loadGamesBySportCached,
   executeTrendQuery,
   type TrendGame,
   type TrendQuery,
@@ -169,7 +170,8 @@ export async function getMatchupContext(
   awayTeam: string,
   season?: number,
 ): Promise<GameContext | null> {
-  const allGames = await loadAllGamesCached();
+  // Only load the requested sport — not all 150K games across 3 sports
+  const allGames = await loadGamesBySportCached(sport);
 
   // Find the most recent game for this matchup
   const matchingGames = allGames

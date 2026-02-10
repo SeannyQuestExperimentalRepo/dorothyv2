@@ -1,0 +1,23 @@
+{
+  "iteration": 0,
+  "phase": 1,
+  "improvements": 0,
+  "reverts": 0,
+  "baseline": null,
+  "best": null,
+  "completed": [],
+  "blocklist": [
+    "outputFileTracingExcludes already configured in next.config.mjs",
+    "outputFileTracingIncludes already configured in next.config.mjs",
+    "team.findMany already uses select in db-trend-loader.ts:31",
+    "resolveTeamIdByName already uses select in db-trend-loader.ts:405",
+    "loadAllGamesFromDB already uses Promise.all in db-trend-loader.ts:421",
+    "trends/route.ts already has Cache-Control s-maxage=300",
+    "upcoming/route.ts already has Cache-Control s-maxage=300",
+    "QueryClient already configured with staleTime=5min gcTime=10min in providers.tsx",
+    "prisma generate already in build script",
+    "data directory already excluded from serverless bundles",
+    ".next/static JS files already measured by benchmark"
+  ],
+  "history": []
+}
