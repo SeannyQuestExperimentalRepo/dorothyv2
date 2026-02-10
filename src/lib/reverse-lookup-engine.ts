@@ -512,6 +512,28 @@ const ANGLE_TEMPLATES: AngleTemplate[] = [
   },
 ];
 
+// ─── Cache ──────────────────────────────────────────────────────────────────────
+
+const anglesCache = new Map<string, { result: ReverseLookupResult; timestamp: number }>();
+const ANGLES_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+function buildCacheKey(options: ReverseLookupOptions): string {
+  const sorted = Object.keys(options)
+    .sort()
+    .reduce(
+      (acc, key) => {
+        acc[key] = (options as Record<string, unknown>)[key];
+        return acc;
+      },
+      {} as Record<string, unknown>,
+    );
+  return JSON.stringify(sorted);
+}
+
+export function clearAnglesCache(): void {
+  anglesCache.clear();
+}
+
 // ─── Execution ──────────────────────────────────────────────────────────────────
 
 /**
@@ -603,6 +625,12 @@ function generateHeadline(
 export async function executeReverseLookup(
   options: ReverseLookupOptions = {},
 ): Promise<ReverseLookupResult> {
+  const cacheKey = buildCacheKey(options);
+  const cached = anglesCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < ANGLES_CACHE_TTL) {
+    return cached.result;
+  }
+
   const start = performance.now();
 
   const {
@@ -747,7 +775,7 @@ export async function executeReverseLookup(
 
   const durationMs = Math.round(performance.now() - start);
 
-  return {
+  const result: ReverseLookupResult = {
     angles: discovered.slice(0, maxResults),
     templatesScanned,
     significantCount: discovered.filter(
@@ -756,6 +784,10 @@ export async function executeReverseLookup(
     computedAt: new Date().toISOString(),
     durationMs,
   };
+
+  anglesCache.set(cacheKey, { result, timestamp: Date.now() });
+
+  return result;
 }
 
 /**
