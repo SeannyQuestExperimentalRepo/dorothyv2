@@ -285,6 +285,25 @@ model UpcomingGame {
   @@index([sport, gameDate])
 }
 
+// ─── ODDS SNAPSHOTS (Multi-book odds from The Odds API) ─────────────────────
+
+model OddsSnapshot {
+  id            Int      @id @default(autoincrement())
+  sport         Sport
+  gameDate      DateTime
+  homeTeam      String
+  awayTeam      String
+  externalId    String   // The Odds API game ID
+  bookmakers    Json     // Array of ParsedOdds per bookmaker
+  bestSpread    Float?   // Best available spread for home
+  bestTotal     Float?   // Consensus total
+  fetchedAt     DateTime @default(now())
+
+  @@unique([externalId, fetchedAt])
+  @@index([sport, gameDate])
+  @@index([homeTeam, awayTeam, gameDate])
+}
+
 // ─── AUTH (NextAuth.js v5) ──────────────────────────────────────────────────
 
 model User {
