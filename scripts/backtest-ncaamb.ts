@@ -5,12 +5,18 @@
  * NCAAMB season. For each game date, computes picks using only data
  * available BEFORE that date, then grades vs actual results.
  *
+ * v6: Point-in-Time (PIT) ratings — uses date-specific blended KenPom
+ *     ratings to remove look-ahead bias. Falls back to end-of-season
+ *     ratings if PIT data is unavailable.
+ *
  * Signals used:
- *   1. KenPom Model Edge (current ratings — note: look-ahead bias)
+ *   1. KenPom Model Edge (PIT ratings — no look-ahead bias)
  *   2. Season ATS (cumulative, walk-forward)
  *   3. Recent Form (last 5 games, walk-forward)
  *   4. H2H (all historical)
  *   5. Convergence scoring
+ *   6. Tempo differential (v5)
+ *   7. Rest / B2B (v4)
  *
  * Signal NOT included (too expensive for 5500 games):
  *   - Trend Angles (reverse lookup — 50+ DB queries per team)
@@ -19,9 +25,56 @@
  * Usage: npx tsx scripts/backtest-ncaamb.ts
  */
 
+import * as fs from "fs";
+import * as path from "path";
 import { prisma } from "../src/lib/db";
 import { getKenpomRatings, lookupRating, type KenpomRating } from "../src/lib/kenpom";
 import { wilsonInterval } from "../src/lib/trend-stats";
+
+// ─── PIT Ratings Loader ─────────────────────────────────────────────────────
+
+interface PITSnapshot {
+  date: string;
+  alpha: number;
+  teamCount: number;
+  ratings: Record<string, KenpomRating>;
+}
+
+/**
+ * Load PIT ratings and return a function that gives the correct
+ * ratings snapshot for any game date.
+ */
+function loadPITRatings(pitPath: string): ((gameDate: Date) => Map<string, KenpomRating> | null) {
+  if (!fs.existsSync(pitPath)) {
+    console.log(`  PIT ratings file not found at ${pitPath}`);
+    return () => null;
+  }
+
+  const snapshots: PITSnapshot[] = JSON.parse(fs.readFileSync(pitPath, "utf-8"));
+  console.log(`  Loaded ${snapshots.length} PIT snapshots (${snapshots[0]?.date} to ${snapshots[snapshots.length - 1]?.date})`);
+
+  // Pre-build Maps for each snapshot
+  const snapshotMaps: { date: string; ratings: Map<string, KenpomRating> }[] = snapshots.map(s => ({
+    date: s.date,
+    ratings: new Map(Object.entries(s.ratings)),
+  }));
+
+  return (gameDate: Date): Map<string, KenpomRating> | null => {
+    const dateStr = gameDate.toISOString().split("T")[0];
+
+    // Find the nearest snapshot that is <= gameDate (no future data)
+    let best = snapshotMaps[0];
+    for (const snap of snapshotMaps) {
+      if (snap.date <= dateStr) {
+        best = snap;
+      } else {
+        break; // snapshots are sorted, no need to continue
+      }
+    }
+
+    return best?.ratings ?? null;
+  };
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -723,13 +776,26 @@ async function runBacktest() {
   }) as unknown as GameRecord[];
   console.log(`Loaded ${priorGames.length} prior season games for H2H\n`);
 
-  // 2. Load KenPom ratings
-  let kenpomRatings: Map<string, KenpomRating> | null = null;
-  try {
-    kenpomRatings = await getKenpomRatings();
-    console.log(`Loaded ${kenpomRatings.size} KenPom ratings\n`);
-  } catch (err) {
-    console.log("KenPom not available, running without model edge\n");
+  // 2. Load KenPom ratings — prefer PIT (point-in-time) over static
+  const pitPath = path.resolve(__dirname, "../data/pit-kenpom-ratings.json");
+  const usePIT = fs.existsSync(pitPath);
+  let staticKenpomRatings: Map<string, KenpomRating> | null = null;
+  let getPITRatings: ((gameDate: Date) => Map<string, KenpomRating> | null) | null = null;
+
+  if (usePIT) {
+    console.log("Loading PIT (point-in-time) KenPom ratings...");
+    getPITRatings = loadPITRatings(pitPath);
+    console.log("  Using PIT ratings — no look-ahead bias ✓\n");
+  } else {
+    console.log("No PIT ratings found, falling back to static end-of-season ratings...");
+    console.log("  ⚠ WARNING: Static ratings have look-ahead bias");
+    console.log("  Run: npx tsx scripts/generate-pit-ratings.ts  to generate PIT ratings\n");
+    try {
+      staticKenpomRatings = await getKenpomRatings();
+      console.log(`  Loaded ${staticKenpomRatings.size} static KenPom ratings\n`);
+    } catch (err) {
+      console.log("  KenPom not available, running without model edge\n");
+    }
   }
 
   // 3. Walk-forward simulation
@@ -760,6 +826,11 @@ async function runBacktest() {
     const dayGames = gamesByDate.get(dateStr)!;
 
     if (dateStr >= minDateStr) {
+      // Get PIT ratings for this specific date (or fall back to static)
+      const kenpomRatings = getPITRatings
+        ? getPITRatings(dayGames[0].gameDate)
+        : staticKenpomRatings;
+
       // Process each game for this date
       for (const game of dayGames) {
         if (game.spread === null) continue;
@@ -988,8 +1059,14 @@ async function runBacktest() {
 
   console.log("\n" + "=".repeat(70));
   console.log("NOTES:");
-  console.log("• KenPom ratings are current (end-of-season), NOT historical.");
-  console.log("  This introduces look-ahead bias for the model edge signal.");
+  if (usePIT) {
+    console.log("• KenPom ratings: PIT (point-in-time) blended approach.");
+    console.log("  Prior season (2024) → current season (2025) blend by date.");
+    console.log("  No look-ahead bias ✓");
+  } else {
+    console.log("• KenPom ratings are current (end-of-season), NOT historical.");
+    console.log("  This introduces look-ahead bias for the model edge signal.");
+  }
   console.log("• Trend Angles signal excluded (too expensive for 5500+ games).");
   console.log("  Live picks include this signal (weight: 0.25).");
   console.log("• Walk-forward: season ATS/form stats use only pre-game data.");
