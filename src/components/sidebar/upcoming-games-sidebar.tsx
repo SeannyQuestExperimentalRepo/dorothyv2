@@ -11,6 +11,8 @@ interface UpcomingGame {
   gameDate: string;
   homeTeam: string;
   awayTeam: string;
+  homeRank: number | null;
+  awayRank: number | null;
   spread: number | null;
   overUnder: number | null;
   moneylineHome: number | null;
@@ -189,6 +191,8 @@ export default function UpcomingGamesSidebar() {
                 <GameCard
                   homeTeam={game.homeTeam}
                   awayTeam={game.awayTeam}
+                  homeRank={game.homeRank}
+                  awayRank={game.awayRank}
                   gameDate={game.gameDate}
                   spread={game.spread}
                   overUnder={game.overUnder}

@@ -5,6 +5,8 @@ import Link from "next/link";
 interface GameCardProps {
   homeTeam: string;
   awayTeam: string;
+  homeRank: number | null;
+  awayRank: number | null;
   gameDate: string; // ISO string
   spread: number | null;
   overUnder: number | null;
@@ -39,9 +41,16 @@ function teamSlug(name: string): string {
   return encodeURIComponent(name);
 }
 
+function formatRank(rank: number | null): string {
+  if (rank == null || rank > 25) return "";
+  return `#${rank} `;
+}
+
 export default function GameCard({
   homeTeam,
   awayTeam,
+  homeRank,
+  awayRank,
   gameDate,
   spread,
   overUnder,
@@ -66,7 +75,7 @@ export default function GameCard({
         {/* Away team */}
         <div className="flex items-center justify-between">
           <span className="truncate text-sm font-medium text-foreground/90 group-hover:text-foreground">
-            {awayTeam}
+            {awayRank ? <span className="text-primary/80">{formatRank(awayRank)}</span> : null}{awayTeam}
           </span>
           <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
             {spread != null ? formatSpread(-spread) : ""}
@@ -76,7 +85,7 @@ export default function GameCard({
         {/* Home team */}
         <div className="flex items-center justify-between">
           <span className="truncate text-sm font-medium text-foreground/90 group-hover:text-foreground">
-            {homeTeam}
+            {homeRank ? <span className="text-primary/80">{formatRank(homeRank)}</span> : null}{homeTeam}
           </span>
           <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
             {spread != null ? formatSpread(spread) : ""}

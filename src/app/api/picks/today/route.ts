@@ -117,8 +117,21 @@ export async function GET(req: NextRequest) {
       .filter((p) => p.gameDate >= now)
       .filter((p) => p.confidence <= maxStars);
 
+    // Enrich picks with team rankings from UpcomingGame table
+    const upcomingGames = await prisma.upcomingGame.findMany({
+      where: { sport: sport as Sport, gameDate: { gte: dateKey } },
+      select: { homeTeam: true, awayTeam: true, homeRank: true, awayRank: true },
+    });
+    const rankMap = new Map(
+      upcomingGames.map((g) => [`${g.homeTeam}|${g.awayTeam}`, { homeRank: g.homeRank, awayRank: g.awayRank }]),
+    );
+    const enrichedPicks = displayPicks.map((p) => {
+      const ranks = rankMap.get(`${p.homeTeam}|${p.awayTeam}`);
+      return { ...p, homeRank: ranks?.homeRank ?? null, awayRank: ranks?.awayRank ?? null };
+    });
+
     return NextResponse.json(
-      { success: true, date, sport, picks: displayPicks, cached, tier: tier.label },
+      { success: true, date, sport, picks: enrichedPicks, cached, tier: tier.label },
       {
         headers: {
           "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",

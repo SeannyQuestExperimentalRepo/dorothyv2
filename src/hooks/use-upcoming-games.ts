@@ -6,6 +6,8 @@ interface UpcomingGame {
   gameDate: string;
   homeTeam: string;
   awayTeam: string;
+  homeRank: number | null;
+  awayRank: number | null;
   spread: number | null;
   overUnder: number | null;
   moneylineHome: number | null;

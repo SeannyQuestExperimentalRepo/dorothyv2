@@ -17,6 +17,8 @@ interface PropPick {
   sport: string;
   homeTeam: string;
   awayTeam: string;
+  homeRank?: number | null;
+  awayRank?: number | null;
   gameDate: string;
   pickLabel: string;
   playerName: string | null;
@@ -54,7 +56,10 @@ export function PropPickCard({ pick }: PropPickCardProps) {
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold">{pick.pickLabel}</div>
           <div className="mt-0.5 text-xs text-muted-foreground">
-            {pick.awayTeam} @ {pick.homeTeam}
+            {pick.awayRank && pick.awayRank <= 25 ? <span className="text-primary/80">#{pick.awayRank} </span> : null}
+            {pick.awayTeam} @{" "}
+            {pick.homeRank && pick.homeRank <= 25 ? <span className="text-primary/80">#{pick.homeRank} </span> : null}
+            {pick.homeTeam}
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">

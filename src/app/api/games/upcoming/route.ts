@@ -58,6 +58,8 @@ export async function GET(request: NextRequest) {
           gameDate: g.gameDate.toISOString(),
           homeTeam: g.homeTeam,
           awayTeam: g.awayTeam,
+          homeRank: g.homeRank,
+          awayRank: g.awayRank,
           spread: g.spread,
           overUnder: g.overUnder,
           moneylineHome: g.moneylineHome,

@@ -18,6 +18,8 @@ interface Pick {
   pickType: string;
   homeTeam: string;
   awayTeam: string;
+  homeRank?: number | null;
+  awayRank?: number | null;
   gameDate: string;
   pickSide: string;
   line: number | null;
@@ -123,7 +125,10 @@ export function GamePickCard({ spreadPick, ouPick }: GamePickCardProps) {
       {/* Header */}
       <div className="mb-3 flex items-baseline justify-between">
         <div className="text-sm font-medium">
-          {pick.awayTeam} <span className="text-muted-foreground">@</span> {pick.homeTeam}
+          {pick.awayRank && pick.awayRank <= 25 ? <span className="text-primary/80">#{pick.awayRank} </span> : null}
+          {pick.awayTeam} <span className="text-muted-foreground">@</span>{" "}
+          {pick.homeRank && pick.homeRank <= 25 ? <span className="text-primary/80">#{pick.homeRank} </span> : null}
+          {pick.homeTeam}
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
           {spreadPick?.line != null && (
