@@ -40,6 +40,9 @@ export const config = {
   stripePriceMonthly: getEnvVar("STRIPE_PRICE_MONTHLY"),
   stripePriceAnnual: getEnvVar("STRIPE_PRICE_ANNUAL"),
 
+  // KenPom
+  kenpomApiKey: getEnvVar("KENPOM_API_KEY"),
+
   // Cron
   cronSecret: getEnvVar("CRON_SECRET"),
 

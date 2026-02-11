@@ -25,6 +25,7 @@ import { loadGamesBySportCached, type TrendGame } from "./trend-engine";
 import { wilsonInterval } from "./trend-stats";
 import { executeTeamReverseLookup } from "./reverse-lookup-engine";
 import { executePlayerPropQueryFromDB } from "./prop-trend-engine";
+import { getKenpomRatings, lookupRating, type KenpomRating } from "./kenpom";
 import type { Sport } from "@prisma/client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -325,11 +326,10 @@ function buildH2H(
 // ─── Model Edge: KenPom (NCAAMB) ────────────────────────────────────────────
 
 function computeKenPomEdge(
-  allGames: TrendGame[],
+  ratings: Map<string, KenpomRating> | null,
   homeTeam: string,
   awayTeam: string,
   sport: string,
-  currentSeason: number,
   spread: number | null,
   overUnder: number | null,
 ): { spread: SignalResult; ou: SignalResult } {
@@ -342,42 +342,27 @@ function computeKenPomEdge(
     strength: "noise",
   };
 
-  if (sport !== "NCAAMB") return { spread: neutral, ou: { ...neutral } };
+  if (sport !== "NCAAMB" || !ratings) return { spread: neutral, ou: { ...neutral } };
 
-  // Find most recent game for each team to get latest KenPom ratings
-  const homeRecent = allGames
-    .filter((g) => g.sport === sport && g.season === currentSeason &&
-      (g.homeTeam === homeTeam || g.awayTeam === homeTeam) &&
-      ((g.homeTeam === homeTeam && g.homeAdjEM !== null) ||
-        (g.awayTeam === homeTeam && g.awayAdjEM !== null)))
-    .sort((a, b) => (b.gameDate || "").localeCompare(a.gameDate || ""));
+  const homeRating = lookupRating(ratings, homeTeam);
+  const awayRating = lookupRating(ratings, awayTeam);
 
-  const awayRecent = allGames
-    .filter((g) => g.sport === sport && g.season === currentSeason &&
-      (g.homeTeam === awayTeam || g.awayTeam === awayTeam) &&
-      ((g.homeTeam === awayTeam && g.homeAdjEM !== null) ||
-        (g.awayTeam === awayTeam && g.awayAdjEM !== null)))
-    .sort((a, b) => (b.gameDate || "").localeCompare(a.gameDate || ""));
-
-  if (homeRecent.length === 0 || awayRecent.length === 0) {
+  if (!homeRating || !awayRating) {
     return { spread: neutral, ou: { ...neutral } };
   }
 
-  const hGame = homeRecent[0];
-  const aGame = awayRecent[0];
-
-  const homeEM = hGame.homeTeam === homeTeam ? hGame.homeAdjEM : hGame.awayAdjEM;
-  const awayEM = aGame.homeTeam === awayTeam ? aGame.homeAdjEM : aGame.awayAdjEM;
-  const homeTempo = hGame.homeTeam === homeTeam ? hGame.homeAdjTempo : hGame.awayAdjTempo;
-  const awayTempo = aGame.homeTeam === awayTeam ? aGame.homeAdjTempo : aGame.awayAdjTempo;
-  const homeOE = hGame.homeTeam === homeTeam ? hGame.homeAdjOE : hGame.awayAdjOE;
-  const awayOE = aGame.homeTeam === awayTeam ? aGame.homeAdjOE : aGame.awayAdjOE;
-  const homeDE = hGame.homeTeam === homeTeam ? hGame.homeAdjDE : hGame.awayAdjDE;
-  const awayDE = aGame.homeTeam === awayTeam ? aGame.homeAdjDE : aGame.awayAdjDE;
+  const homeEM = homeRating.AdjEM;
+  const awayEM = awayRating.AdjEM;
+  const homeTempo = homeRating.AdjTempo;
+  const awayTempo = awayRating.AdjTempo;
+  const homeOE = homeRating.AdjOE;
+  const awayOE = awayRating.AdjOE;
+  const homeDE = homeRating.AdjDE;
+  const awayDE = awayRating.AdjDE;
 
   // Spread: predicted margin = homeEM - awayEM + 3.5 (HCA)
   let spreadSignal: SignalResult = neutral;
-  if (homeEM !== null && awayEM !== null && spread !== null) {
+  if (spread !== null) {
     const predictedMargin = homeEM - awayEM + 3.5;
     const spreadEdge = predictedMargin + spread; // spread negative when home favored
     const absMag = clamp(Math.abs(spreadEdge) / 0.7, 0, 10);
@@ -387,16 +372,14 @@ function computeKenPomEdge(
       direction: spreadEdge > 0.5 ? "home" : spreadEdge < -0.5 ? "away" : "neutral",
       magnitude: absMag,
       confidence: 0.8,
-      label: `KenPom: ${homeTeam} ${homeEM > 0 ? "+" : ""}${homeEM.toFixed(1)} vs ${awayTeam} ${awayEM > 0 ? "+" : ""}${awayEM.toFixed(1)}, predicted margin ${predictedMargin > 0 ? "+" : ""}${predictedMargin.toFixed(1)}, edge ${spreadEdge > 0 ? "+" : ""}${spreadEdge.toFixed(1)} pts`,
+      label: `KenPom: ${homeTeam} #${homeRating.RankAdjEM} (${homeEM > 0 ? "+" : ""}${homeEM.toFixed(1)}) vs ${awayTeam} #${awayRating.RankAdjEM} (${awayEM > 0 ? "+" : ""}${awayEM.toFixed(1)}), predicted margin ${predictedMargin > 0 ? "+" : ""}${predictedMargin.toFixed(1)}, edge ${spreadEdge > 0 ? "+" : ""}${spreadEdge.toFixed(1)} pts`,
       strength: absMag >= 7 ? "strong" : absMag >= 4 ? "moderate" : absMag >= 1.5 ? "weak" : "noise",
     };
   }
 
   // O/U: predicted total from tempo + efficiency
   let ouSignal: SignalResult = { ...neutral };
-  if (homeTempo !== null && awayTempo !== null &&
-      homeOE !== null && awayOE !== null &&
-      homeDE !== null && awayDE !== null && overUnder !== null) {
+  if (overUnder !== null) {
     const pace = (homeTempo + awayTempo) / 2;
     const homeExpected = (homeOE / 100) * (awayDE / 100) * pace;
     const awayExpected = (awayOE / 100) * (homeDE / 100) * pace;
@@ -1476,6 +1459,16 @@ export async function generateDailyPicks(
   const sportWeightsSpread = SPREAD_WEIGHTS[sport] || SPREAD_WEIGHTS.NFL;
   const sportWeightsOU = OU_WEIGHTS[sport] || OU_WEIGHTS.NFL;
 
+  // Fetch live KenPom ratings for NCAAMB (cached for 6h)
+  let kenpomRatings: Map<string, KenpomRating> | null = null;
+  if (sport === "NCAAMB") {
+    try {
+      kenpomRatings = await getKenpomRatings();
+    } catch (err) {
+      console.error("[pick-engine] KenPom fetch failed, continuing without:", err);
+    }
+  }
+
   const allPicks: GeneratedPick[] = [];
   const batchSize = 4;
 
@@ -1504,8 +1497,9 @@ export async function generateDailyPicks(
           ]);
 
           // Compute model edge (KenPom for NCAAMB, power rating for NFL/NCAAF)
+          // KenPom lookup uses UpcomingGame names (which match KenPom naming)
           const modelPrediction = sport === "NCAAMB"
-            ? computeKenPomEdge(allGames, canonHome, canonAway, sport, currentSeason, game.spread, game.overUnder)
+            ? computeKenPomEdge(kenpomRatings, game.homeTeam, game.awayTeam, sport, game.spread, game.overUnder)
             : computePowerRatingEdge(allGames, canonHome, canonAway, sport, currentSeason, game.spread, game.overUnder);
 
           // ── Score Spread ──

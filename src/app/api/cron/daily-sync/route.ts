@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { syncCompletedGames, refreshUpcomingGames } from "@/lib/espn-sync";
 import { clearGameCache } from "@/lib/trend-engine";
 import { clearAnglesCache } from "@/lib/reverse-lookup-engine";
+import { clearKenpomCache } from "@/lib/kenpom";
 import type { Sport } from "@/lib/espn-api";
 
 export const dynamic = "force-dynamic";
@@ -94,7 +95,8 @@ export async function POST(request: NextRequest) {
     // 4. Invalidate in-memory caches so new data is visible
     clearGameCache();
     clearAnglesCache();
-    console.log("[Cron] Game and angles caches cleared after sync");
+    clearKenpomCache();
+    console.log("[Cron] Game, angles, and KenPom caches cleared after sync");
 
     const durationMs = Math.round(performance.now() - start);
 
