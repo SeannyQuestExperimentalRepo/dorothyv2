@@ -103,7 +103,18 @@ export async function POST(request: NextRequest) {
       results.grade_bets = { error: err instanceof Error ? err.message : "Unknown error" };
     }
 
-    // 5. Invalidate in-memory caches so new data is visible
+    // 5. Evaluate saved trends against today's upcoming games
+    try {
+      const { evaluateSavedTrends } = await import("@/lib/trend-evaluator");
+      const trendResult = await evaluateSavedTrends();
+      results.trend_eval = trendResult;
+      console.log(`[Cron] Evaluated ${trendResult.evaluated} saved trends, ${trendResult.triggered} triggered`);
+    } catch (err) {
+      console.error("[Cron] Trend evaluation failed:", err);
+      results.trend_eval = { error: err instanceof Error ? err.message : "Unknown error" };
+    }
+
+    // 6. Invalidate in-memory caches so new data is visible
     clearGameCache();
     clearAnglesCache();
     clearKenpomCache();
