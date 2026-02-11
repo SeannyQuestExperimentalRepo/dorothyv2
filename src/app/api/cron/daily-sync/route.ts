@@ -92,7 +92,18 @@ export async function POST(request: NextRequest) {
       results.grade_picks = { error: err instanceof Error ? err.message : "Unknown error" };
     }
 
-    // 4. Invalidate in-memory caches so new data is visible
+    // 4. Auto-grade pending bets (linked to picks or matched to games)
+    try {
+      const { gradePendingBets } = await import("@/lib/pick-engine");
+      const betResult = await gradePendingBets();
+      results.grade_bets = betResult;
+      console.log(`[Cron] Graded ${betResult.graded} bets (${betResult.errors} errors)`);
+    } catch (err) {
+      console.error("[Cron] Bet grading failed:", err);
+      results.grade_bets = { error: err instanceof Error ? err.message : "Unknown error" };
+    }
+
+    // 5. Invalidate in-memory caches so new data is visible
     clearGameCache();
     clearAnglesCache();
     clearKenpomCache();

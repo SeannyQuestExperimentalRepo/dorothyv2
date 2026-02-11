@@ -95,10 +95,10 @@ const SPREAD_WEIGHTS: Record<string, Record<string, number>> = {
 
 const OU_WEIGHTS: Record<string, Record<string, number>> = {
   NCAAMB: {
-    modelEdge: 0.30,
-    seasonOU: 0.20,
+    modelEdge: 0.40, // sum_AdjDE is strongest O/U predictor (r=0.345, LOSO 65.1%)
+    seasonOU: 0.15,
     trendAngles: 0.20,
-    recentForm: 0.15,
+    recentForm: 0.10,
     h2hWeather: 0.15,
   },
   NFL: {
@@ -324,6 +324,23 @@ function buildH2H(
 }
 
 // ─── Model Edge: KenPom (NCAAMB) ────────────────────────────────────────────
+//
+// Research-backed model from 93,554 games (2010-2025), LOSO validated.
+// 14-topic analysis with 10 iterations each. Key findings:
+//
+// SPREAD: kenpom_edge = (homeEM - awayEM) + HCA + spread
+//   - HCA = 2.0 (optimal, was 3.5; conference=2.5, non-conf=1.5, March=0.5)
+//   - Home side (edge > 0): only profitable Nov-Dec (60.2%). Jan+ drops to 52%.
+//   - Away side (edge < 0): stable year-round (57-58%).
+//   - March top-25 home: 43.8% cover (regression/fatigue → fade).
+//
+// O/U: sum_AdjDE = home_AdjDE + away_AdjDE (r=0.345, LOSO 65.1%)
+//   - Higher AdjDE = worse defense = more points = OVER.
+//   - Thresholds: >210 → 67% OVER, >205 → 63%, <190 → 81% UNDER, <185 → 86%.
+//   - Both top-50: 22% OVER (78% UNDER) — overrides DE signal.
+//   - Both power conf (BE/B12/B10/SEC/ACC/P12): 70% UNDER.
+//   - Both 200+: 69% OVER.
+//   - Amplifiers: tempo×DE interaction, March UNDER, high line >155.
 
 function computeKenPomEdge(
   ratings: Map<string, KenpomRating> | null,
@@ -332,6 +349,7 @@ function computeKenPomEdge(
   sport: string,
   spread: number | null,
   overUnder: number | null,
+  gameDate: Date,
 ): { spread: SignalResult; ou: SignalResult } {
   const neutral: SignalResult = {
     category: "modelEdge",
@@ -355,45 +373,170 @@ function computeKenPomEdge(
   const awayEM = awayRating.AdjEM;
   const homeTempo = homeRating.AdjTempo;
   const awayTempo = awayRating.AdjTempo;
-  const homeOE = homeRating.AdjOE;
-  const awayOE = awayRating.AdjOE;
   const homeDE = homeRating.AdjDE;
   const awayDE = awayRating.AdjDE;
+  const gameMonth = gameDate.getMonth() + 1; // 1-indexed
 
-  // Spread: predicted margin = homeEM - awayEM + 3.5 (HCA)
+  // ── Spread: kenpom_edge with season-half awareness ──
   let spreadSignal: SignalResult = neutral;
   if (spread !== null) {
-    const predictedMargin = homeEM - awayEM + 3.5;
+    // HCA = 2.0 (optimal from 93k games; 2018-25 era)
+    // Context-specific: conf=2.5, non-conf=1.5, Nov=1.0, March=0.5
+    const predictedMargin = homeEM - awayEM + 2.0;
     const spreadEdge = predictedMargin + spread; // spread negative when home favored
-    const absMag = clamp(Math.abs(spreadEdge) / 0.7, 0, 10);
+    let absMag = clamp(Math.abs(spreadEdge) / 0.7, 0, 10);
+    let conf = 0.8;
 
+    // Season-half adjustment: home-side kenpom_edge (spreadEdge > 0)
+    // only profitable Nov-Dec (60.2%). Jan-Apr drops to 52% (not significant).
+    // Away-side (spreadEdge < 0) is stable year-round (57-58%).
+    const isEarlySeason = gameMonth >= 11; // Nov, Dec
+    if (spreadEdge > 0.5 && !isEarlySeason) {
+      absMag *= 0.4;
+      conf = 0.45;
+    }
+
+    // March top-25 home regression: 43.8% cover (fade home favorites)
+    let marchNote = "";
+    if (gameMonth === 3 && spreadEdge > 0.5 && homeRating.RankAdjEM <= 25) {
+      absMag *= 0.3;
+      conf = 0.40;
+      marchNote = " [March top-25 home fade: 43.8% hist.]";
+    }
+
+    const seasonNote = spreadEdge > 0.5 && !isEarlySeason && !marchNote ? " [home edge weak Jan+]" : "";
     spreadSignal = {
       category: "modelEdge",
       direction: spreadEdge > 0.5 ? "home" : spreadEdge < -0.5 ? "away" : "neutral",
       magnitude: absMag,
-      confidence: 0.8,
-      label: `KenPom: ${homeTeam} #${homeRating.RankAdjEM} (${homeEM > 0 ? "+" : ""}${homeEM.toFixed(1)}) vs ${awayTeam} #${awayRating.RankAdjEM} (${awayEM > 0 ? "+" : ""}${awayEM.toFixed(1)}), predicted margin ${predictedMargin > 0 ? "+" : ""}${predictedMargin.toFixed(1)}, edge ${spreadEdge > 0 ? "+" : ""}${spreadEdge.toFixed(1)} pts`,
+      confidence: conf,
+      label: `KenPom: #${homeRating.RankAdjEM} (${homeEM > 0 ? "+" : ""}${homeEM.toFixed(1)}) vs #${awayRating.RankAdjEM} (${awayEM > 0 ? "+" : ""}${awayEM.toFixed(1)}), edge ${spreadEdge > 0 ? "+" : ""}${spreadEdge.toFixed(1)}${seasonNote}${marchNote}`,
       strength: absMag >= 7 ? "strong" : absMag >= 4 ? "moderate" : absMag >= 1.5 ? "weak" : "noise",
     };
   }
 
-  // O/U: predicted total from tempo + efficiency
+  // ── O/U: sum_AdjDE efficiency-based model ──
+  // sum_AdjDE (r=0.345) replaces predicted-total approach (r=0.003).
+  // Higher AdjDE = worse defense = more points expected = OVER.
+  // Thresholds validated via LOSO CV across 16 seasons (65.1% accuracy).
   let ouSignal: SignalResult = { ...neutral };
   if (overUnder !== null) {
-    const pace = (homeTempo + awayTempo) / 2;
-    const homeExpected = (homeOE / 100) * (awayDE / 100) * pace;
-    const awayExpected = (awayOE / 100) * (homeDE / 100) * pace;
-    const predictedTotal = homeExpected + awayExpected;
-    const totalEdge = predictedTotal - overUnder;
-    const absMag = clamp(Math.abs(totalEdge) / 1.5, 0, 10);
+    const sumAdjDE = homeDE + awayDE;
+    const avgTempo = (homeTempo + awayTempo) / 2;
+    let ouDir: "over" | "under" | "neutral" = "neutral";
+    let ouMag = 0;
+    let ouConf = 0;
+    const labelParts: string[] = [];
 
+    // Primary signal: sum_AdjDE thresholds
+    if (sumAdjDE > 210) {
+      ouDir = "over"; ouMag = 8; ouConf = 0.92;
+      labelParts.push(`sum_AdjDE=${sumAdjDE.toFixed(1)} (strong OVER, 67% hist.)`);
+    } else if (sumAdjDE > 205) {
+      ouDir = "over"; ouMag = 6; ouConf = 0.85;
+      labelParts.push(`sum_AdjDE=${sumAdjDE.toFixed(1)} (OVER zone, 63% hist.)`);
+    } else if (sumAdjDE > 200) {
+      ouDir = "over"; ouMag = 4; ouConf = 0.75;
+      labelParts.push(`sum_AdjDE=${sumAdjDE.toFixed(1)} (mod. OVER, 59% hist.)`);
+    } else if (sumAdjDE < 185) {
+      ouDir = "under"; ouMag = 10; ouConf = 0.95;
+      labelParts.push(`sum_AdjDE=${sumAdjDE.toFixed(1)} (elite UNDER, 86% hist.)`);
+    } else if (sumAdjDE < 190) {
+      ouDir = "under"; ouMag = 8; ouConf = 0.92;
+      labelParts.push(`sum_AdjDE=${sumAdjDE.toFixed(1)} (strong UNDER, 81% hist.)`);
+    } else if (sumAdjDE < 195) {
+      ouDir = "under"; ouMag = 5; ouConf = 0.80;
+      labelParts.push(`sum_AdjDE=${sumAdjDE.toFixed(1)} (UNDER zone, ~65% hist.)`);
+    } else {
+      labelParts.push(`sum_AdjDE=${sumAdjDE.toFixed(1)} (neutral 195-200)`);
+    }
+
+    // Tempo x DE interaction amplifier
+    if (ouDir === "over" && avgTempo > 70 && sumAdjDE > 205) {
+      ouMag = Math.min(ouMag + 2, 10);
+      ouConf = Math.min(ouConf + 0.05, 1.0);
+      labelParts.push(`fast tempo ${avgTempo.toFixed(1)} amplifies OVER (82% combined)`);
+    } else if (ouDir === "over" && avgTempo > 68 && sumAdjDE > 200) {
+      ouMag = Math.min(ouMag + 1, 10);
+      labelParts.push(`tempo ${avgTempo.toFixed(1)} supports OVER`);
+    } else if (ouDir === "under" && avgTempo < 64 && sumAdjDE < 195) {
+      ouMag = Math.min(ouMag + 2, 10);
+      ouConf = Math.min(ouConf + 0.05, 1.0);
+      labelParts.push(`slow tempo ${avgTempo.toFixed(1)} amplifies UNDER`);
+    }
+
+    // Both top-50 matchup: 22.2% OVER (77.8% UNDER!) — stable 18-34% every season
+    // This is the strongest UNDER signal discovered — overrides even sum_AdjDE
+    if (homeRating.RankAdjEM <= 50 && awayRating.RankAdjEM <= 50) {
+      ouDir = "under";
+      ouMag = 10;
+      ouConf = 0.95;
+      labelParts.push(`BOTH TOP-50 (#${homeRating.RankAdjEM} vs #${awayRating.RankAdjEM}, 78% UNDER hist.)`);
+    }
+
+    // Both power conference: 70.3% UNDER (+0.0066 LOSO improvement)
+    const powerConfs = ["BE", "B12", "B10", "SEC", "ACC", "P12"];
+    const homeIsPower = powerConfs.includes(homeRating.ConfShort ?? "");
+    const awayIsPower = powerConfs.includes(awayRating.ConfShort ?? "");
+    if (homeIsPower && awayIsPower &&
+        !(homeRating.RankAdjEM <= 50 && awayRating.RankAdjEM <= 50)) {
+      // Don't double-count with top-50 modifier
+      if (ouDir === "under") {
+        ouMag = Math.min(ouMag + 2, 10);
+        labelParts.push("both power conf (70% UNDER)");
+      } else if (ouDir === "neutral" || ouDir === "over") {
+        ouDir = "under";
+        ouMag = Math.max(ouMag, 6);
+        ouConf = Math.max(ouConf, 0.82);
+        labelParts.push("POWER CONF OVERRIDE (70% UNDER hist.)");
+      }
+    }
+
+    // Both 200+: 69.3% OVER — weak teams produce high-scoring games
+    if (homeRating.RankAdjEM > 200 && awayRating.RankAdjEM > 200) {
+      if (ouDir === "over") {
+        ouMag = Math.min(ouMag + 1, 10);
+        labelParts.push("both 200+ (69% OVER)");
+      } else if (ouDir === "neutral") {
+        ouDir = "over";
+        ouMag = Math.max(ouMag, 5);
+        ouConf = Math.max(ouConf, 0.78);
+        labelParts.push("both 200+ lean OVER (69% hist.)");
+      }
+    }
+
+    // March UNDER modifier (56.9% UNDER overall, tourney 63%)
+    if (gameMonth === 3) {
+      if (ouDir === "under") {
+        ouMag = Math.min(ouMag + 1, 10);
+        labelParts.push("March UNDER bias");
+      } else if (ouDir === "neutral") {
+        ouDir = "under"; ouMag = 3;
+        ouConf = Math.max(ouConf, 0.60);
+        labelParts.push("March UNDER lean (57% hist.)");
+      }
+    }
+
+    // High line bias (overUnder > 155 -> 60.4% UNDER)
+    if (overUnder > 155) {
+      if (ouDir === "under") {
+        ouMag = Math.min(ouMag + 1, 10);
+        labelParts.push(`high line ${overUnder}`);
+      } else if (ouDir === "neutral") {
+        ouDir = "under"; ouMag = 3;
+        ouConf = Math.max(ouConf, 0.65);
+        labelParts.push(`high line ${overUnder} (60% UNDER hist.)`);
+      }
+    }
+
+    const finalMag = clamp(ouMag, 0, 10);
     ouSignal = {
       category: "modelEdge",
-      direction: totalEdge > 1.0 ? "over" : totalEdge < -1.0 ? "under" : "neutral",
-      magnitude: absMag,
-      confidence: 0.7,
-      label: `KenPom total: predicted ${predictedTotal.toFixed(1)} vs line ${overUnder} (${totalEdge > 0 ? "+" : ""}${totalEdge.toFixed(1)})`,
-      strength: absMag >= 6 ? "strong" : absMag >= 3 ? "moderate" : absMag >= 1 ? "weak" : "noise",
+      direction: ouDir,
+      magnitude: finalMag,
+      confidence: ouConf,
+      label: `KenPom O/U: ${labelParts.join(" | ")}`,
+      strength: finalMag >= 6 ? "strong" : finalMag >= 3 ? "moderate" : finalMag >= 1 ? "weak" : "noise",
     };
   }
 
@@ -1503,7 +1646,7 @@ export async function generateDailyPicks(
           // Compute model edge (KenPom for NCAAMB, power rating for NFL/NCAAF)
           // KenPom lookup uses UpcomingGame names (which match KenPom naming)
           const modelPrediction = sport === "NCAAMB"
-            ? computeKenPomEdge(kenpomRatings, game.homeTeam, game.awayTeam, sport, game.spread, game.overUnder)
+            ? computeKenPomEdge(kenpomRatings, game.homeTeam, game.awayTeam, sport, game.spread, game.overUnder, game.gameDate)
             : computePowerRatingEdge(allGames, canonHome, canonAway, sport, currentSeason, game.spread, game.overUnder);
 
           // ── Score Spread ──
@@ -1761,4 +1904,100 @@ async function gradePropPick(
     result: hit ? "WIN" : "LOSS",
     actualValue: actual,
   };
+}
+
+// ─── Bet Auto-Grading ──────────────────────────────────────────────────────────
+
+/** Calculate profit from a graded bet */
+function calculateBetProfit(
+  stake: number,
+  odds: number,
+  result: string,
+): number | null {
+  if (result === "PENDING") return null;
+  if (result === "PUSH") return 0;
+  if (result === "WIN") {
+    const mult = odds >= 100 ? odds / 100 : 100 / Math.abs(odds);
+    return Math.round(stake * mult * 100) / 100;
+  }
+  return -stake; // LOSS
+}
+
+/**
+ * Grade pending bets. Two strategies:
+ * 1. Linked bets (dailyPickId set): mirror the DailyPick result
+ * 2. Unlinked bets: use game-matching logic (same as pick grading)
+ */
+export async function gradePendingBets(): Promise<{
+  graded: number;
+  errors: number;
+}> {
+  const pendingBets = await prisma.bet.findMany({
+    where: {
+      result: "PENDING",
+      gameDate: { lt: new Date() },
+    },
+  });
+
+  let graded = 0, errors = 0;
+
+  for (const bet of pendingBets) {
+    try {
+      let result: string | null = null;
+
+      // Strategy 1: Mirror linked DailyPick result
+      if (bet.dailyPickId) {
+        const pick = await prisma.dailyPick.findUnique({
+          where: { id: bet.dailyPickId },
+          select: { result: true },
+        });
+        if (pick && pick.result !== "PENDING") {
+          result = pick.result;
+        }
+      }
+
+      // Strategy 2: Grade via game matching (if no linked pick or pick still pending)
+      if (!result) {
+        const betType = bet.betType as string;
+        if (betType === "SPREAD" || betType === "OVER_UNDER") {
+          const gradeResult = await gradeGamePick({
+            sport: bet.sport as Sport,
+            homeTeam: bet.homeTeam,
+            awayTeam: bet.awayTeam,
+            gameDate: bet.gameDate,
+            pickType: betType,
+            pickSide: bet.pickSide,
+            line: bet.line,
+          });
+          if (gradeResult) result = gradeResult.result;
+        } else if (betType === "PLAYER_PROP") {
+          const gradeResult = await gradePropPick({
+            playerName: bet.playerName,
+            propStat: bet.propStat,
+            propLine: bet.propLine,
+            gameDate: bet.gameDate,
+          });
+          if (gradeResult) result = gradeResult.result;
+        }
+      }
+
+      if (result && result !== "PENDING") {
+        const profit = calculateBetProfit(bet.stake, bet.oddsValue, result);
+        await prisma.bet.update({
+          where: { id: bet.id },
+          data: {
+            result: result as "WIN" | "LOSS" | "PUSH",
+            profit,
+            gradedAt: new Date(),
+          },
+        });
+        graded++;
+      }
+    } catch (err) {
+      console.error(`[grade] Failed to grade bet ${bet.id}:`, err);
+      errors++;
+    }
+  }
+
+  return { graded, errors };
 }
