@@ -6,14 +6,12 @@ import { useState } from "react";
 import { UserMenu } from "@/components/auth/user-menu";
 
 const navItems = [
-  { name: "NFL", href: "/nfl" },
-  { name: "NCAAF", href: "/ncaaf" },
-  { name: "NCAAMB", href: "/ncaamb" },
+  { name: "Today", href: "/today" },
   { name: "Trends", href: "/trends" },
   { name: "Props", href: "/props" },
   { name: "Odds", href: "/odds" },
+  { name: "Parlays", href: "/parlays" },
   { name: "Bets", href: "/bets" },
-  { name: "Today", href: "/today" },
 ];
 
 export function Header() {

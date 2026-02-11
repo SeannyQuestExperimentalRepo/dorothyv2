@@ -95,6 +95,44 @@ const FEATURES = [
       </svg>
     ),
   },
+  {
+    title: "Live Odds Comparison",
+    desc: "Compare lines across DraftKings, FanDuel, BetMGM, and more. Find the best price on every bet.",
+    icon: (
+      <svg
+        className="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+        />
+      </svg>
+    ),
+  },
+  {
+    title: "Bet Tracking & P/L",
+    desc: "Track every wager with auto-grading. See ROI by sport, bet type, and month with cumulative P&L charts.",
+    icon: (
+      <svg
+        className="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
+        />
+      </svg>
+    ),
+  },
 ];
 
 const SPORT_ICONS: Record<string, React.ReactNode> = {
@@ -240,7 +278,7 @@ export function HomeContent({ stats }: { stats: DatasetStats | null }) {
           </div>
 
           {/* ===== TODAY'S SHEET CTA ===== */}
-          <div className="mt-8">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/today"
               className="group/cta relative inline-flex items-center gap-2.5 overflow-hidden rounded-xl border border-accent/25 bg-accent/[0.07] px-6 py-3 text-sm font-semibold text-accent transition-all duration-300 hover:border-accent/40 hover:bg-accent/[0.12] hover:shadow-lg hover:shadow-accent/10"
@@ -265,6 +303,18 @@ export function HomeContent({ stats }: { stats: DatasetStats | null }) {
                   d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
                 />
               </svg>
+            </Link>
+            <Link
+              href="/odds"
+              className="inline-flex items-center gap-2 rounded-xl border border-border/40 bg-secondary/60 px-5 py-3 text-sm font-medium text-muted-foreground transition-all duration-300 hover:border-primary/30 hover:text-foreground"
+            >
+              Live Odds
+            </Link>
+            <Link
+              href="/parlays"
+              className="inline-flex items-center gap-2 rounded-xl border border-border/40 bg-secondary/60 px-5 py-3 text-sm font-medium text-muted-foreground transition-all duration-300 hover:border-primary/30 hover:text-foreground"
+            >
+              Parlay Builder
             </Link>
           </div>
         </div>
