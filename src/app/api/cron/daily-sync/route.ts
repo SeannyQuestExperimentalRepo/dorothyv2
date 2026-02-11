@@ -2,14 +2,15 @@
  * POST /api/cron/daily-sync
  *
  * Daily cron job that:
- * 1. Refreshes upcoming games with current odds (capture BEFORE games start)
+ * 1. Refreshes upcoming games with current odds from ESPN
+ * 1.5. Supplements NCAAMB odds from The Odds API (fills ESPN gaps)
  * 2. Syncs yesterday's completed games into the historical DB
- *    (looks up pre-game odds from UpcomingGame table)
+ * 2.5. Backfills yesterday's NCAAMB games still missing spreads (morning only)
+ * 3. Generates daily picks
+ * 4-7. Grades picks, grades bets, evaluates trends, clears caches
  *
- * IMPORTANT: Step 1 must run BEFORE step 2 so that today's odds are captured
- * in the UpcomingGame table before any games are marked as completed. The
- * UpcomingGame cleanup uses a 3-day window to ensure odds persist long enough
- * for the completed-game sync to find them.
+ * IMPORTANT: Step 1/1.5 must run BEFORE step 2 so that today's odds are
+ * captured in the UpcomingGame table before any games are marked as completed.
  *
  * Protected by CRON_SECRET header (Vercel Cron sends this automatically).
  *
@@ -66,6 +67,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 1.5. Supplement NCAAMB odds from The Odds API
+    // Fills UpcomingGame gaps so syncCompletedGames finds odds for games ESPN missed.
+    try {
+      const { supplementUpcomingGamesFromOddsApi } = await import("@/lib/odds-api-sync");
+      const supplementResult = await supplementUpcomingGamesFromOddsApi("NCAAMB");
+      results.supplement_NCAAMB = supplementResult;
+      console.log(
+        `[Cron] OddsAPI supplement: fetched=${supplementResult.fetched}, supplemented=${supplementResult.supplemented}, enriched=${supplementResult.enriched}`,
+      );
+    } catch (err) {
+      console.error("[Cron] OddsAPI supplement failed:", err);
+      results.supplement_NCAAMB = { error: "Unknown error" };
+    }
+
     // 2. THEN: Sync yesterday's completed games
     // lookupUpcomingGameOdds() searches for odds captured in step 1 (or
     // from a previous cron run) using a ±1 day date window.
@@ -81,7 +96,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2.5. Pre-generate today's daily picks for all sports
+    // 2.5. Backfill yesterday's NCAAMB games that still lack spreads (morning run only)
+    try {
+      const { backfillYesterdayOdds } = await import("@/lib/odds-api-sync");
+      const backfillResult = await backfillYesterdayOdds();
+      results.backfill_NCAAMB = backfillResult;
+      console.log(
+        `[Cron] OddsAPI backfill: updated=${backfillResult.updated}, notMatched=${backfillResult.notMatched}`,
+      );
+    } catch (err) {
+      console.error("[Cron] OddsAPI backfill failed:", err);
+      results.backfill_NCAAMB = { error: "Unknown error" };
+    }
+
+    // 3. Pre-generate today's daily picks for all sports
     // Done here (after odds refresh) so picks are ready before users check
     {
       const { generateDailyPicks } = await import("@/lib/pick-engine");
@@ -133,7 +161,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Grade yesterday's daily picks
+    // 4. Grade yesterday's daily picks
     try {
       const { gradeYesterdaysPicks } = await import("@/lib/pick-engine");
       const gradeResult = await gradeYesterdaysPicks();
@@ -144,7 +172,7 @@ export async function POST(request: NextRequest) {
       results.grade_picks = { error: "Unknown error" };
     }
 
-    // 4. Auto-grade pending bets (linked to picks or matched to games)
+    // 5. Auto-grade pending bets (linked to picks or matched to games)
     try {
       const { gradePendingBets } = await import("@/lib/pick-engine");
       const betResult = await gradePendingBets();
@@ -155,7 +183,7 @@ export async function POST(request: NextRequest) {
       results.grade_bets = { error: "Unknown error" };
     }
 
-    // 5. Evaluate saved trends against today's upcoming games
+    // 6. Evaluate saved trends against today's upcoming games
     try {
       const { evaluateSavedTrends } = await import("@/lib/trend-evaluator");
       const trendResult = await evaluateSavedTrends();
@@ -166,7 +194,7 @@ export async function POST(request: NextRequest) {
       results.trend_eval = { error: "Unknown error" };
     }
 
-    // 6. Invalidate in-memory caches so new data is visible
+    // 7. Invalidate in-memory caches so new data is visible
     clearGameCache();
     clearAnglesCache();
     clearKenpomCache();

@@ -1,10 +1,10 @@
 /**
- * Daily Pick Engine v5
+ * Daily Pick Engine v6
  *
  * Signal Convergence Scoring Model — generates daily betting picks by
- * evaluating 8 independent signal categories:
+ * evaluating 9 independent signal categories:
  *
- *   1. Model Edge — KenPom predictions (NCAAMB) or power ratings (NFL/NCAAF)
+ *   1. Model Edge — KenPom FanMatch predictions (NCAAMB) or power ratings (NFL/NCAAF)
  *   2. Season ATS — Wilson-adjusted ATS performance (CONTRARIAN for NCAAMB)
  *   3. Trend Angles — auto-discovered via reverse lookup (50+ templates)
  *   4. Recent Form — last 5 game ATS momentum
@@ -12,20 +12,20 @@
  *   6. Situational — weather, rest advantages
  *   7. Rest/B2B — schedule fatigue (NCAAMB)
  *   8. Tempo Differential — pace mismatch O/U signal (NCAAMB)
+ *   9. Market Edge — KenPom WP vs moneyline implied probability (NCAAMB)
+ *
+ * v6 changes:
+ *   - FanMatch predicted margin replaces AdjEM+HCA for spread model edge
+ *   - Context-aware HCA fallback (conf=2.5, non-conf=1.5, Nov=1.0, March=0.5)
+ *   - FanMatch predicted total as confirming/disconfirming O/U modifier
+ *   - New moneyline market edge signal (KenPom WP vs market implied probability)
+ *   - AdjOE modifier for O/U (offensive efficiency was previously ignored)
  *
  * v5 changes (41-experiment backtest on 5,523 NCAAMB games):
  *   - Flipped ATS to contrarian/fade for NCAAMB (55.4% spread W%, +6% ROI)
  *   - Added tempo differential O/U signal (5★ O/U +2.9% ROI)
  *   - Disabled O/U convergence bonus (5★ O/U +2.6% ROI)
  *   - Required minimum 3 active signals to generate a pick (+1.5% ROI)
- *
- * v4 changes:
- *   - Removed 3★ picks (were -5.5% ROI)
- *   - Fixed O/U sumDE thresholds (200-215 is UNDER, not OVER)
- *   - Added O/U line-range signal (155+ → UNDER at 68-70%)
- *   - Faded home-side KenPom edge after Nov (47-48% → contrarian)
- *   - Disabled spread convergence bonus (signal agreement hurts spreads)
- *   - Added B2B rest signal (home on B2B → 42% cover)
  *
  * Confidence tiers:
  *   - 4★ (70-84): clear model edge + confirming angles
@@ -39,7 +39,7 @@ import { loadGamesBySportCached, type TrendGame } from "./trend-engine";
 import { wilsonInterval } from "./trend-stats";
 import { executeTeamReverseLookup } from "./reverse-lookup-engine";
 import { executePlayerPropQueryFromDB } from "./prop-trend-engine";
-import { getKenpomRatings, lookupRating, type KenpomRating } from "./kenpom";
+import { getKenpomRatings, getKenpomFanMatch, lookupRating, type KenpomRating, type KenpomFanMatch } from "./kenpom";
 import type { Sport } from "@prisma/client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -85,10 +85,11 @@ const SPREAD_WEIGHTS: Record<string, Record<string, number>> = {
     modelEdge: 0.30,
     seasonATS: 0.15,
     trendAngles: 0.25,
-    recentForm: 0.15,
-    h2h: 0.10,
+    recentForm: 0.10,  // v6: reduced from 0.15 to make room for marketEdge
+    h2h: 0.05,         // v6: reduced from 0.10 to make room for marketEdge
     situational: 0.00,
     restDays: 0.05,
+    marketEdge: 0.10,  // v6: KenPom WP vs moneyline implied probability
   },
   NFL: {
     modelEdge: 0.20,
@@ -366,6 +367,7 @@ function computeKenPomEdge(
   spread: number | null,
   overUnder: number | null,
   gameDate: Date,
+  fanMatch: KenpomFanMatch[] | null = null,
 ): { spread: SignalResult; ou: SignalResult } {
   const neutral: SignalResult = {
     category: "modelEdge",
@@ -393,12 +395,32 @@ function computeKenPomEdge(
   const awayDE = awayRating.AdjDE;
   const gameMonth = gameDate.getMonth() + 1; // 1-indexed
 
+  // v6: Look up FanMatch prediction for this specific game
+  const fm = fanMatch?.find(
+    (f) => f.Home.toLowerCase() === homeTeam.toLowerCase()
+      && f.Visitor.toLowerCase() === awayTeam.toLowerCase(),
+  ) ?? null;
+
   // ── Spread: kenpom_edge with season-half awareness ──
   let spreadSignal: SignalResult = neutral;
   if (spread !== null) {
-    // HCA = 2.0 (optimal from 93k games; 2018-25 era)
-    // Context-specific: conf=2.5, non-conf=1.5, Nov=1.0, March=0.5
-    const predictedMargin = homeEM - awayEM + 2.0;
+    let predictedMargin: number;
+    let marginSource: string;
+
+    if (fm) {
+      // v6: FanMatch game-level prediction (accounts for HCA, travel, altitude)
+      predictedMargin = fm.HomePred - fm.VisitorPred;
+      marginSource = `FanMatch: ${fm.HomePred.toFixed(0)}-${fm.VisitorPred.toFixed(0)} (WP ${(fm.HomeWP * 100).toFixed(0)}%)`;
+    } else {
+      // Fallback: AdjEM + context-aware HCA
+      const isConfGame = homeRating.ConfShort === awayRating.ConfShort;
+      const hca = isConfGame ? 2.5
+        : gameMonth >= 3 && gameMonth <= 4 ? 0.5  // March Madness (neutral sites)
+        : gameMonth >= 11 ? 1.0                    // November (MTE/exempt tourneys)
+        : 1.5;                                      // non-conference regular season
+      predictedMargin = homeEM - awayEM + hca;
+      marginSource = `AdjEM (HCA=${hca.toFixed(1)})`;
+    }
     const spreadEdge = predictedMargin + spread; // spread negative when home favored
     let absMag = clamp(Math.abs(spreadEdge) / 0.7, 0, 10);
     let conf = 0.8;
@@ -429,7 +451,7 @@ function computeKenPomEdge(
       direction: spreadEdge > 0.5 ? "home" : spreadEdge < -0.5 ? "away" : "neutral",
       magnitude: absMag,
       confidence: conf,
-      label: `KenPom: #${homeRating.RankAdjEM} (${homeEM > 0 ? "+" : ""}${homeEM.toFixed(1)}) vs #${awayRating.RankAdjEM} (${awayEM > 0 ? "+" : ""}${awayEM.toFixed(1)}), edge ${spreadEdge > 0 ? "+" : ""}${spreadEdge.toFixed(1)}${seasonNote}${marchNote}`,
+      label: `KenPom [${marginSource}]: #${homeRating.RankAdjEM} (${homeEM > 0 ? "+" : ""}${homeEM.toFixed(1)}) vs #${awayRating.RankAdjEM} (${awayEM > 0 ? "+" : ""}${awayEM.toFixed(1)}), edge ${spreadEdge > 0 ? "+" : ""}${spreadEdge.toFixed(1)}${seasonNote}${marchNote}`,
       strength: absMag >= 7 ? "strong" : absMag >= 4 ? "moderate" : absMag >= 1.5 ? "weak" : "noise",
     };
   }
@@ -474,6 +496,33 @@ function computeKenPomEdge(
     } else {
       ouDir = "under"; ouMag = 10; ouConf = 0.95;
       labelParts.push(`sum_AdjDE=${sumAdjDE.toFixed(1)} (elite UNDER, 92% hist.)`);
+    }
+
+    // v6: AdjOE modifier — offensive efficiency is the missing half of the equation
+    const sumAdjOE = homeRating.AdjOE + awayRating.AdjOE;
+    if (sumAdjOE > 220 && ouDir === "over") {
+      ouMag = Math.min(ouMag + 1, 10);
+      labelParts.push(`strong offenses sum_AdjOE=${sumAdjOE.toFixed(1)}`);
+    } else if (sumAdjOE < 195 && ouDir === "under") {
+      ouMag = Math.min(ouMag + 1, 10);
+      labelParts.push(`weak offenses sum_AdjOE=${sumAdjOE.toFixed(1)}`);
+    }
+
+    // v6: FanMatch predicted total modifier
+    if (fm && overUnder !== null && ouDir !== "neutral") {
+      const fmPredTotal = fm.HomePred + fm.VisitorPred;
+      const fmDirection: "over" | "under" = fmPredTotal > overUnder ? "over" : "under";
+      if (fmDirection === ouDir) {
+        // FanMatch agrees with sum_AdjDE → boost
+        ouMag = Math.min(ouMag + 1, 10);
+        ouConf = Math.min(ouConf + 0.05, 1.0);
+        labelParts.push(`FM total ${fmPredTotal.toFixed(1)} confirms (vs line ${overUnder})`);
+      } else {
+        // FanMatch disagrees → dampen
+        ouMag = Math.max(ouMag - 1, 0);
+        ouConf = Math.max(ouConf - 0.05, 0);
+        labelParts.push(`FM total ${fmPredTotal.toFixed(1)} opposes (vs line ${overUnder})`);
+      }
     }
 
     // Tempo x DE interaction amplifier
@@ -1097,6 +1146,56 @@ function signalRestDays(
   }
 
   return { category: "restDays", direction: "neutral", magnitude: 0, confidence: 0, label: "Normal rest", strength: "noise" };
+}
+
+// ─── Signal: Moneyline Market Edge (Spread) ──────────────────────────────────
+// v6: Compare KenPom win probability vs market-implied probability from moneylines.
+// Large divergence signals a mispriced line or sharp model edge.
+
+function signalMoneylineEdge(
+  moneylineHome: number | null,
+  moneylineAway: number | null,
+  kenpomHomeWP: number | null,
+): SignalResult {
+  const neutral: SignalResult = {
+    category: "marketEdge", direction: "neutral",
+    magnitude: 0, confidence: 0, label: "N/A", strength: "noise",
+  };
+
+  if (moneylineHome == null || moneylineAway == null || kenpomHomeWP == null) return neutral;
+
+  // Convert American moneylines to implied probabilities
+  const impliedHome = moneylineHome < 0
+    ? (-moneylineHome) / (-moneylineHome + 100)
+    : 100 / (moneylineHome + 100);
+  const impliedAway = moneylineAway < 0
+    ? (-moneylineAway) / (-moneylineAway + 100)
+    : 100 / (moneylineAway + 100);
+
+  // Remove vig: normalize to sum to 1.0
+  const totalImplied = impliedHome + impliedAway;
+  if (totalImplied <= 0) return neutral;
+  const marketHomeWP = impliedHome / totalImplied;
+
+  // Edge = KenPom WP - Market WP (positive = KenPom likes home more)
+  const edge = kenpomHomeWP - marketHomeWP;
+  const absEdge = Math.abs(edge);
+
+  if (absEdge < 0.08) return neutral; // Not enough divergence
+
+  const direction: "home" | "away" = edge > 0 ? "home" : "away";
+  const isStrong = absEdge >= 0.15;
+  const magnitude = isStrong ? 7 : 5;
+  const confidence = isStrong ? 0.75 : 0.60;
+
+  return {
+    category: "marketEdge",
+    direction,
+    magnitude,
+    confidence,
+    label: `ML edge: KenPom ${(kenpomHomeWP * 100).toFixed(0)}% vs market ${(marketHomeWP * 100).toFixed(0)}% (${edge > 0 ? "+" : ""}${(edge * 100).toFixed(1)}%)`,
+    strength: isStrong ? "strong" : "moderate",
+  };
 }
 
 // ─── Signal: Tempo Differential (O/U) ────────────────────────────────────────
@@ -1793,11 +1892,18 @@ export async function generateDailyPicks(
 
   // Fetch live KenPom ratings for NCAAMB (cached for 6h)
   let kenpomRatings: Map<string, KenpomRating> | null = null;
+  let kenpomFanMatch: KenpomFanMatch[] | null = null;
   if (sport === "NCAAMB") {
     try {
       kenpomRatings = await getKenpomRatings();
     } catch (err) {
       console.error("[pick-engine] KenPom fetch failed, continuing without:", err);
+    }
+    // v6: Fetch FanMatch game-level predictions (cached for 2h)
+    try {
+      kenpomFanMatch = await getKenpomFanMatch(dateStr);
+    } catch (err) {
+      console.error("[pick-engine] FanMatch fetch failed, continuing without:", err);
     }
   }
 
@@ -1831,11 +1937,17 @@ export async function generateDailyPicks(
           // Compute model edge (KenPom for NCAAMB, power rating for NFL/NCAAF)
           // KenPom lookup uses UpcomingGame names (which match KenPom naming)
           const modelPrediction = sport === "NCAAMB"
-            ? computeKenPomEdge(kenpomRatings, game.homeTeam, game.awayTeam, sport, game.spread, game.overUnder, game.gameDate)
+            ? computeKenPomEdge(kenpomRatings, game.homeTeam, game.awayTeam, sport, game.spread, game.overUnder, game.gameDate, kenpomFanMatch)
             : computePowerRatingEdge(allGames, canonHome, canonAway, sport, currentSeason, game.spread, game.overUnder);
 
           // ── Score Spread ──
           if (game.spread !== null) {
+            // v6: Look up FanMatch HomeWP for moneyline edge signal
+            const gameFM = kenpomFanMatch?.find(
+              (f) => f.Home.toLowerCase() === game.homeTeam.toLowerCase()
+                && f.Visitor.toLowerCase() === game.awayTeam.toLowerCase(),
+            );
+
             const spreadSignals: SignalResult[] = [
               modelPrediction.spread,
               signalSeasonATS(homeStats, awayStats, sport),
@@ -1847,6 +1959,7 @@ export async function generateDailyPicks(
                 game.forecastCategory, sport,
               ),
               signalRestDays(allGames, canonHome, canonAway, dateStr, sport),
+              signalMoneylineEdge(game.moneylineHome, game.moneylineAway, gameFM?.HomeWP ?? null),
             ];
 
             // v5: skip convergence bonus + require min 3 active signals
