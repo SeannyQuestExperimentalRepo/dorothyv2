@@ -786,3 +786,109 @@ export function executePlayerTrendQueryCached(
   const games = loadPlayerGamesCached();
   return executePlayerTrendQuery(query, games);
 }
+
+// ─── DB-Backed Query Execution ─────────────────────────────────────────────────
+
+/**
+ * Execute a player trend query using PostgreSQL as the data source.
+ * Resolves player name via DB, loads games from DB, then reuses
+ * existing computePlayerSummary() and filter logic.
+ */
+export async function executePlayerTrendQueryFromDB(
+  query: PlayerTrendQuery,
+): Promise<PlayerTrendResult> {
+  const {
+    resolvePlayerFromDB,
+    loadPlayerGamesFromDB,
+    loadPlayerGamesByFilters,
+  } = await import("./db-player-loader");
+
+  let games: PlayerTrendGame[];
+
+  if (query.playerId) {
+    games = await loadPlayerGamesFromDB(query.playerId, query.seasonRange);
+  } else if (query.player) {
+    // Resolve player name via DB
+    const matches = await resolvePlayerFromDB(query.player);
+    if (matches.length > 0) {
+      games = await loadPlayerGamesFromDB(matches[0].playerId, query.seasonRange);
+    } else {
+      games = [];
+    }
+  } else {
+    // Position/team query without a specific player
+    games = await loadPlayerGamesByFilters({
+      position: query.position,
+      positionGroup: query.positionGroup,
+      team: query.team,
+      opponent: query.opponent,
+      seasonRange: query.seasonRange,
+      limit: query.limit,
+    });
+  }
+
+  // Apply in-memory filters (composable filters, team/opponent matching
+  // on canonical names, etc.)
+  if (query.position) {
+    const pos = query.position.toUpperCase();
+    games = games.filter(
+      (g) =>
+        (g.position || "").toUpperCase() === pos ||
+        (g.position_group || "").toUpperCase() === pos,
+    );
+  } else if (query.positionGroup) {
+    const pg = query.positionGroup.toUpperCase();
+    games = games.filter(
+      (g) => (g.position_group || "").toUpperCase() === pg,
+    );
+  }
+
+  if (query.team && !query.playerId && !query.player) {
+    const teamLower = query.team.toLowerCase();
+    games = games.filter(
+      (g) =>
+        (g.team || "").toLowerCase() === teamLower ||
+        (g.teamCanonical || "").toLowerCase().includes(teamLower),
+    );
+  }
+
+  if (query.opponent) {
+    const oppLower = query.opponent.toLowerCase();
+    games = games.filter(
+      (g) =>
+        (g.opponent_team || "").toLowerCase() === oppLower ||
+        (g.opponentCanonical || "").toLowerCase().includes(oppLower),
+    );
+  }
+
+  if (query.filters.length > 0) {
+    games = applyAllPlayerFilters(games, query.filters);
+  }
+
+  if (query.orderBy) {
+    const { field, direction } = query.orderBy;
+    const multiplier = direction === "desc" ? -1 : 1;
+    games.sort((a, b) => {
+      const va = resolvePlayerField(a, field);
+      const vb = resolvePlayerField(b, field);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "number" && typeof vb === "number") {
+        return (va - vb) * multiplier;
+      }
+      return String(va).localeCompare(String(vb)) * multiplier;
+    });
+  }
+
+  if (query.limit && query.limit > 0) {
+    games = games.slice(0, query.limit);
+  }
+
+  return {
+    query,
+    games,
+    summary: computePlayerSummary(games),
+    computedAt: new Date().toISOString(),
+  };
+}

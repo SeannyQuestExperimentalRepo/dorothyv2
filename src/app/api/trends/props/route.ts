@@ -11,48 +11,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
-  executePlayerPropQuery,
+  executePlayerPropQueryFromDB,
   resolveStatName,
   type PropQuery,
   type PropResult,
 } from "@/lib/prop-trend-engine";
-import { loadPlayerGamesCached } from "@/lib/player-trend-engine";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-
-/** Check if player data is available (file may not exist in serverless) */
-function isPlayerDataAvailable(): boolean {
-  try {
-    const games = loadPlayerGamesCached();
-    return games.length > 0;
-  } catch {
-    return false;
-  }
-}
-
-function playerDataUnavailableResponse() {
-  return NextResponse.json({
-    success: true,
-    data: {
-      query: {},
-      overall: { hits: 0, total: 0, hitRate: 0 },
-      splits: [],
-      recentTrend: { last5: 0, last10: 0 },
-      currentStreak: 0,
-      avgValue: 0,
-      medianValue: 0,
-      games: [],
-      gameCount: 0,
-      computedAt: new Date().toISOString(),
-      message:
-        "Player props are not yet available in production. " +
-        "Player data (105K+ NFL game logs) is being migrated to the database. " +
-        "Game-level trends for NFL, NCAAF, and NCAAMB are fully available.",
-    },
-    meta: { durationMs: 0 },
-  });
-}
 
 // --- Zod Schemas ---
 
@@ -122,8 +88,6 @@ function errorResponse(message: string, status: number, details?: unknown) {
 // --- POST /api/trends/props ---
 
 export async function POST(request: NextRequest) {
-  if (!isPlayerDataAvailable()) return playerDataUnavailableResponse();
-
   const start = performance.now();
 
   let body: unknown;
@@ -140,7 +104,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const query = parsed.data as PropQuery;
-    const result = executePlayerPropQuery(query);
+    const result = await executePlayerPropQueryFromDB(query);
     const durationMs = Math.round(performance.now() - start);
 
     if (result.games.length === 0) {
@@ -168,7 +132,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return formatResponse(result, durationMs);
+    const response = formatResponse(result, durationMs);
+    response.headers.set(
+      "Cache-Control",
+      "s-maxage=300, stale-while-revalidate=600",
+    );
+    return response;
   } catch (err) {
     console.error("[POST /api/trends/props] Error:", err);
     return errorResponse(
@@ -181,8 +150,6 @@ export async function POST(request: NextRequest) {
 // --- GET /api/trends/props ---
 
 export async function GET(request: NextRequest) {
-  if (!isPlayerDataAvailable()) return playerDataUnavailableResponse();
-
   const start = performance.now();
   const { searchParams } = new URL(request.url);
 
@@ -232,9 +199,14 @@ export async function GET(request: NextRequest) {
       opponent,
     };
 
-    const result = executePlayerPropQuery(query);
+    const result = await executePlayerPropQueryFromDB(query);
     const durationMs = Math.round(performance.now() - start);
-    return formatResponse(result, durationMs);
+    const response = formatResponse(result, durationMs);
+    response.headers.set(
+      "Cache-Control",
+      "s-maxage=300, stale-while-revalidate=600",
+    );
+    return response;
   } catch (err) {
     console.error("[GET /api/trends/props] Error:", err);
     return errorResponse(

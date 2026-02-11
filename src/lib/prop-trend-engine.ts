@@ -12,6 +12,7 @@ import {
   type PlayerTrendGame,
   type PlayerTrendQuery,
   executePlayerTrendQuery,
+  executePlayerTrendQueryFromDB,
   loadPlayerGamesCached,
   resolvePlayerName,
 } from "./player-trend-engine";
@@ -400,6 +401,178 @@ export function executePlayerPropQuery(query: PropQuery): PropResult {
     avgValue,
     medianValue,
     games: gameLogs.slice(0, 50), // Cap at 50 most recent
+    computedAt: new Date().toISOString(),
+  };
+}
+
+// ─── DB-Backed Prop Execution ────────────────────────────────────────────────
+
+/**
+ * Execute a player prop query using PostgreSQL as the data source.
+ * Loads games from DB via the player trend engine, then reuses all
+ * hit rate / splits / streak logic unchanged.
+ */
+export async function executePlayerPropQueryFromDB(
+  query: PropQuery,
+): Promise<PropResult> {
+  const statField = resolveStatName(query.stat);
+
+  // Build the underlying player trend query
+  const filters: TrendFilter[] = [...(query.filters || [])];
+
+  if (query.homeAway === "home") {
+    filters.push({ field: "isHome", operator: "eq", value: true });
+  } else if (query.homeAway === "away") {
+    filters.push({ field: "isHome", operator: "eq", value: false });
+  }
+
+  if (query.favDog === "favorite") {
+    filters.push({ field: "spread", operator: "gt", value: 0 });
+  } else if (query.favDog === "underdog") {
+    filters.push({ field: "spread", operator: "lt", value: 0 });
+  }
+
+  const playerQuery: PlayerTrendQuery = {
+    player: query.player,
+    opponent: query.opponent,
+    filters,
+    seasonRange: query.seasonRange,
+  };
+
+  const result = await executePlayerTrendQueryFromDB(playerQuery);
+  const games = result.games;
+
+  // Resolve player name from results
+  const playerName =
+    games.length > 0
+      ? games[0].player_display_name || query.player
+      : query.player;
+
+  // Reuse the same analysis logic as the sync version
+  const statValues = games.map((g) => {
+    const val = g[statField];
+    return typeof val === "number" ? val : null;
+  });
+
+  const overall = analyzePlayerProp(statValues, query.line, query.direction, statField);
+
+  const gameLogs: PropGameLog[] = [];
+  for (let i = games.length - 1; i >= 0; i--) {
+    const g = games[i];
+    const val = g[statField];
+    if (typeof val !== "number") continue;
+
+    const hit =
+      query.direction === "over" ? val > query.line : val < query.line;
+
+    gameLogs.push({
+      gameDate: g.gameDate || "",
+      opponent: g.opponentCanonical || g.opponent_team || "",
+      isHome: g.isHome,
+      statValue: val,
+      hit,
+      teamScore: g.teamScore,
+      opponentScore: g.opponentScore,
+      gameResult: g.gameResult,
+      spread: g.spread,
+      weatherCategory: g.weatherCategory,
+      season: g.season,
+      week: g.week,
+    });
+  }
+
+  const last5 = gameLogs.slice(0, 5);
+  const last10 = gameLogs.slice(0, 10);
+  const last5Hits = last5.filter((g) => g.hit).length;
+  const last10Hits = last10.filter((g) => g.hit).length;
+
+  let streak = 0;
+  if (gameLogs.length > 0) {
+    const firstHit = gameLogs[0].hit;
+    for (const g of gameLogs) {
+      if (g.hit === firstHit) streak++;
+      else break;
+    }
+    if (!firstHit) streak = -streak;
+  }
+
+  const validValues = statValues.filter((v): v is number => v !== null);
+  const avgValue =
+    validValues.length > 0
+      ? Math.round(
+          (validValues.reduce((a, b) => a + b, 0) / validValues.length) * 10,
+        ) / 10
+      : 0;
+  const sorted = [...validValues].sort((a, b) => a - b);
+  const medianValue =
+    sorted.length > 0
+      ? sorted.length % 2 === 0
+        ? Math.round(((sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2) * 10) / 10
+        : sorted[Math.floor(sorted.length / 2)]
+      : 0;
+
+  const splits: PropSplitRecord[] = [];
+
+  // Home vs Away split
+  const homeGames = games.filter((g) => g.isHome === true);
+  const awayGames = games.filter((g) => g.isHome === false);
+  if (homeGames.length > 0) {
+    const homeVals = homeGames.map((g) => {
+      const v = g[statField];
+      return typeof v === "number" ? v : null;
+    });
+    const homeProp = analyzePlayerProp(homeVals, query.line, query.direction, statField);
+    splits.push({ label: "Home", hits: homeProp.hits, total: homeProp.total, hitRate: homeProp.hitRate, significance: homeProp.significance });
+  }
+  if (awayGames.length > 0) {
+    const awayVals = awayGames.map((g) => {
+      const v = g[statField];
+      return typeof v === "number" ? v : null;
+    });
+    const awayProp = analyzePlayerProp(awayVals, query.line, query.direction, statField);
+    splits.push({ label: "Away", hits: awayProp.hits, total: awayProp.total, hitRate: awayProp.hitRate, significance: awayProp.significance });
+  }
+
+  // Fav vs Dog split
+  const favGames = games.filter((g) => g.spread !== null && g.spread > 0);
+  const dogGames = games.filter((g) => g.spread !== null && g.spread < 0);
+  if (favGames.length > 0) {
+    const favVals = favGames.map((g) => { const v = g[statField]; return typeof v === "number" ? v : null; });
+    const favProp = analyzePlayerProp(favVals, query.line, query.direction, statField);
+    splits.push({ label: "As Favorite", hits: favProp.hits, total: favProp.total, hitRate: favProp.hitRate, significance: favProp.significance });
+  }
+  if (dogGames.length > 0) {
+    const dogVals = dogGames.map((g) => { const v = g[statField]; return typeof v === "number" ? v : null; });
+    const dogProp = analyzePlayerProp(dogVals, query.line, query.direction, statField);
+    splits.push({ label: "As Underdog", hits: dogProp.hits, total: dogProp.total, hitRate: dogProp.hitRate, significance: dogProp.significance });
+  }
+
+  // By-season split
+  const seasons = new Map<number, PlayerTrendGame[]>();
+  for (const g of games) {
+    const arr = seasons.get(g.season) || [];
+    arr.push(g);
+    seasons.set(g.season, arr);
+  }
+  for (const [season, seasonGames] of Array.from(seasons.entries()).sort(([a], [b]) => b - a)) {
+    const seasonVals = seasonGames.map((g) => { const v = g[statField]; return typeof v === "number" ? v : null; });
+    const seasonProp = analyzePlayerProp(seasonVals, query.line, query.direction, statField);
+    splits.push({ label: `${season} Season`, hits: seasonProp.hits, total: seasonProp.total, hitRate: seasonProp.hitRate, significance: seasonProp.significance });
+  }
+
+  return {
+    playerName,
+    query,
+    overall,
+    splits,
+    recentTrend: {
+      last5: { hits: last5Hits, total: last5.length, hitRate: last5.length > 0 ? Math.round((last5Hits / last5.length) * 1000) / 10 : 0 },
+      last10: { hits: last10Hits, total: last10.length, hitRate: last10.length > 0 ? Math.round((last10Hits / last10.length) * 1000) / 10 : 0 },
+    },
+    currentStreak: streak,
+    avgValue,
+    medianValue,
+    games: gameLogs.slice(0, 50),
     computedAt: new Date().toISOString(),
   };
 }

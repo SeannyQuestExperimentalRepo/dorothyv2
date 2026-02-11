@@ -356,3 +356,36 @@ model SearchLog {
   @@index([userId])
   @@index([createdAt])
 }
+
+// ─── PLAYER GAME LOGS ──────────────────────────────────────────────────────
+
+model PlayerGameLog {
+  id              Int       @id @default(autoincrement())
+  playerId        String    // nflverse player ID
+  playerName      String    // display name
+  position        String    // "QB", "WR", etc.
+  positionGroup   String    // "QB", "RB", "WR", "TE", "K", "DL", "LB", "DB", "OL"
+  season          Int
+  week            Int
+  seasonType      String    @default("REG")  // "REG" | "POST"
+  team            String    // abbreviation ("KC")
+  opponentTeam    String    // abbreviation ("BUF")
+  gameDate        DateTime?
+  isHome          Boolean?
+  teamScore       Int?
+  opponentScore   Int?
+  gameResult      String?   // "W" | "L" | "T"
+  spread          Float?
+  overUnder       Float?
+  spreadResult    String?   // "COVERED" | "LOST" | "PUSH"
+  ouResult        String?   // "OVER" | "UNDER" | "PUSH"
+  isPlayoff       Boolean   @default(false)
+  isPrimetime     Boolean?
+  stats           Json      @default("{}")  // All stat fields + metadata as JSONB
+
+  @@index([playerId, season])
+  @@index([playerName])
+  @@index([team, season])
+  @@index([season, positionGroup])
+  @@index([playerId])
+}

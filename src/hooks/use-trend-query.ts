@@ -16,16 +16,23 @@ async function executeTrendSearch(query: string): Promise<any> {
   if (parseRes.ok) {
     const parsed = await parseRes.json();
     if (parsed.success && parsed.data) {
-      const { trendQuery, playerTrendQuery, interpretation, queryType } =
+      const { trendQuery, playerTrendQuery, propQuery, interpretation, queryType } =
         parsed.data;
 
       // Step 2: Execute the parsed query
-      const endpoint =
-        queryType === "player" ? "/api/trends/players" : "/api/trends";
-      const queryPayload =
-        queryType === "player" && playerTrendQuery
-          ? playerTrendQuery
-          : trendQuery;
+      let endpoint: string;
+      let queryPayload: unknown;
+      if (queryType === "prop" && propQuery) {
+        endpoint = "/api/trends/props";
+        queryPayload = propQuery;
+      } else if (queryType === "player" && playerTrendQuery) {
+        endpoint = "/api/trends/players";
+        queryPayload = playerTrendQuery;
+      } else {
+        endpoint = "/api/trends";
+        queryPayload = trendQuery;
+      }
+
       const execRes = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

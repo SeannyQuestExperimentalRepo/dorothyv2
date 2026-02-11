@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       data: {
         trendQuery: result.trendQuery,
         playerTrendQuery: result.playerTrendQuery,
+        propQuery: result.propQuery,
         queryType: result.queryType,
         interpretation: result.interpretation,
         confidence: result.confidence,

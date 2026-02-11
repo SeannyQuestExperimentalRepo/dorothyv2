@@ -21,6 +21,7 @@ import type {
   FilterOperator,
 } from "./trend-engine";
 import type { PlayerTrendQuery } from "./player-trend-engine";
+import type { PropQuery } from "./prop-trend-engine";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,8 +31,10 @@ export interface ParsedQuery {
   trendQuery: TrendQuery;
   /** Set when the query targets player-level data */
   playerTrendQuery?: PlayerTrendQuery;
+  /** Set when the query targets a player prop */
+  propQuery?: PropQuery;
   /** Which engine should handle this query */
-  queryType: "game" | "player";
+  queryType: "game" | "player" | "prop";
   /** Human-readable interpretation of what the engine will search */
   interpretation: string;
   /** 0-1 confidence score */
@@ -250,6 +253,174 @@ Result: sport: "ALL",
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// Prop query detection (local)
+// ---------------------------------------------------------------------------
+
+/**
+ * Prop stat aliases for matching natural language queries.
+ */
+const PROP_STAT_ALIASES: Record<string, string> = {
+  "passing yards": "passing_yards",
+  "pass yards": "passing_yards",
+  "passing yds": "passing_yards",
+  "pass yds": "passing_yards",
+  "passing tds": "passing_tds",
+  "pass tds": "passing_tds",
+  "passing touchdowns": "passing_tds",
+  "touchdown passes": "passing_tds",
+  "completions": "completions",
+  "attempts": "attempts",
+  "interceptions": "passing_interceptions",
+  "rushing yards": "rushing_yards",
+  "rush yards": "rushing_yards",
+  "rushing yds": "rushing_yards",
+  "rush yds": "rushing_yards",
+  "rushing tds": "rushing_tds",
+  "rush tds": "rushing_tds",
+  "rushing touchdowns": "rushing_tds",
+  "carries": "carries",
+  "rush attempts": "carries",
+  "receiving yards": "receiving_yards",
+  "rec yards": "receiving_yards",
+  "receiving yds": "receiving_yards",
+  "rec yds": "receiving_yards",
+  "receptions": "receptions",
+  "catches": "receptions",
+  "receiving tds": "receiving_tds",
+  "rec tds": "receiving_tds",
+  "targets": "targets",
+  "fantasy points": "fantasy_points_ppr",
+  "sacks": "def_sacks",
+  "tackles": "def_tackles_solo",
+  "field goals": "fg_made",
+};
+
+// Sort by length descending for matching
+const PROP_STAT_KEYS_SORTED = Object.keys(PROP_STAT_ALIASES).sort(
+  (a, b) => b.length - a.length,
+);
+
+/**
+ * Detect if a query is a prop query (e.g., "Mahomes over 300 passing yards").
+ * Pattern: [player] over/under [number] [stat] [optional filters]
+ */
+function detectPropQuery(query: string): ParsedQuery | null {
+  const q = query.toLowerCase().trim();
+
+  // Must contain "over" or "under"
+  if (!/\b(over|under)\b/.test(q)) return null;
+
+  // Must contain a number (the line)
+  const lineMatch = q.match(/\b(over|under)\s+(\d+\.?\d*)\b/);
+  if (!lineMatch) return null;
+
+  const direction = lineMatch[1] as "over" | "under";
+  const line = parseFloat(lineMatch[2]);
+
+  // Try to find a player name
+  let playerName: string | undefined;
+  const playerAliases = Object.keys(NFL_PLAYER_NAMES).sort(
+    (a, b) => b.length - a.length,
+  );
+  for (const alias of playerAliases) {
+    const regex = new RegExp(`\\b${escapeRegex(alias)}\\b`, "i");
+    if (regex.test(q)) {
+      playerName = NFL_PLAYER_NAMES[alias].name;
+      break;
+    }
+  }
+
+  // Must have a player name for a prop query
+  if (!playerName) return null;
+
+  // Try to find a stat
+  let statField: string | undefined;
+  let statLabel: string | undefined;
+  for (const alias of PROP_STAT_KEYS_SORTED) {
+    if (q.includes(alias)) {
+      statField = PROP_STAT_ALIASES[alias];
+      statLabel = alias;
+      break;
+    }
+  }
+
+  // If no stat found, this isn't a prop query
+  if (!statField) return null;
+
+  // Optional filters
+  let homeAway: "home" | "away" | undefined;
+  if (/\bat home\b/.test(q) || /\bhome games?\b/.test(q)) {
+    homeAway = "home";
+  } else if (/\bon the road\b/.test(q) || /\baway\b/.test(q)) {
+    homeAway = "away";
+  }
+
+  let favDog: "favorite" | "underdog" | undefined;
+  if (/\bas (?:a )?favou?rite\b/.test(q) || /\bwhen favou?red\b/.test(q)) {
+    favDog = "favorite";
+  } else if (/\bas (?:a |an )?underdog\b/.test(q)) {
+    favDog = "underdog";
+  }
+
+  // Opponent
+  let opponent: string | undefined;
+  const vsMatch = q.match(/\b(?:against|vs\.?|versus)\s+(?:the\s+)?(\w+)/i);
+  if (vsMatch) {
+    const oppAlias = vsMatch[1].toLowerCase();
+    const nflAliases = Object.keys(NFL_TEAMS).sort((a, b) => b.length - a.length);
+    for (const alias of nflAliases) {
+      if (oppAlias === alias || alias.includes(oppAlias)) {
+        opponent = NFL_TEAMS[alias];
+        break;
+      }
+    }
+  }
+
+  // Season range
+  let seasonRange: [number, number] | undefined;
+  const sinceMatch = q.match(/\bsince\s+(\d{4})\b/);
+  if (sinceMatch) {
+    seasonRange = [parseInt(sinceMatch[1], 10), CURRENT_NFL_SEASON];
+  }
+  const lastYearsMatch = q.match(/\blast\s+(\d+)\s+years?\b/);
+  if (lastYearsMatch && !seasonRange) {
+    const n = parseInt(lastYearsMatch[1], 10);
+    seasonRange = [CURRENT_NFL_SEASON - (n - 1), CURRENT_NFL_SEASON];
+  }
+
+  const propQuery: PropQuery = {
+    player: playerName,
+    stat: statField,
+    line,
+    direction,
+    homeAway,
+    favDog,
+    opponent,
+    seasonRange,
+  };
+
+  // Build interpretation
+  const parts = [
+    playerName,
+    direction,
+    line.toString(),
+    statLabel,
+  ];
+  if (homeAway) parts.push(`(${homeAway})`);
+  if (favDog) parts.push(`as ${favDog}`);
+  if (opponent) parts.push(`vs ${opponent}`);
+  if (seasonRange) parts.push(`${seasonRange[0]}-${seasonRange[1]}`);
+
+  return {
+    trendQuery: { sport: "NFL", filters: [] },
+    propQuery,
+    queryType: "prop",
+    interpretation: `Prop search: ${parts.join(" ")}`,
+    confidence: 0.9,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Player query detection (local)
 // ---------------------------------------------------------------------------
 
@@ -433,7 +604,13 @@ export async function parseNaturalLanguageQuery(
   query: string,
 ): Promise<ParsedQuery> {
   try {
-    // Check for player query first
+    // Check for prop query first (more specific than player query)
+    const propResult = detectPropQuery(query);
+    if (propResult) {
+      return propResult;
+    }
+
+    // Check for player query
     const playerResult = detectPlayerQuery(query);
     if (playerResult) {
       return playerResult;
