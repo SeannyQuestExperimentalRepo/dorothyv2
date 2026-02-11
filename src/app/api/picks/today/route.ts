@@ -59,9 +59,10 @@ export async function GET(req: NextRequest) {
     }
 
     const dateKey = new Date(date + "T00:00:00Z");
+    const now = new Date();
 
-    // Check if picks already exist in DB (cached path)
-    const existingPicks = await prisma.dailyPick.findMany({
+    // Check if picks already exist in DB for this date (all games, not just upcoming)
+    const allPicks = await prisma.dailyPick.findMany({
       where: {
         date: dateKey,
         sport: sport as Sport,
@@ -69,66 +70,55 @@ export async function GET(req: NextRequest) {
       orderBy: [{ confidence: "desc" }, { trendScore: "desc" }],
     });
 
-    if (existingPicks.length > 0) {
-      const filtered = existingPicks.filter((p) => p.confidence <= maxStars);
-      return NextResponse.json(
-        { success: true, date, sport, picks: filtered, cached: true, tier: tier.label },
-        {
-          headers: {
-            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-          },
-        },
-      );
+    let cached = true;
+
+    if (allPicks.length === 0) {
+      // No picks yet — generate for ALL games on this date
+      cached = false;
+      const generatedPicks = await generateDailyPicks(date, sport as Sport);
+
+      if (generatedPicks.length > 0) {
+        const pickData = generatedPicks.map((p) => ({
+          date: dateKey,
+          sport: p.sport,
+          pickType: p.pickType,
+          homeTeam: p.homeTeam,
+          awayTeam: p.awayTeam,
+          gameDate: p.gameDate,
+          pickSide: p.pickSide,
+          line: p.line,
+          pickLabel: p.pickLabel,
+          playerName: p.playerName,
+          propStat: p.propStat,
+          propLine: p.propLine,
+          trendScore: p.trendScore,
+          confidence: p.confidence,
+          headline: p.headline,
+          reasoning: p.reasoning as unknown as import("@prisma/client").Prisma.InputJsonValue,
+        }));
+
+        await prisma.dailyPick.createMany({
+          data: pickData,
+          skipDuplicates: true,
+        });
+
+        // Fetch back from DB to get IDs and consistent format
+        const savedPicks = await prisma.dailyPick.findMany({
+          where: { date: dateKey, sport: sport as Sport },
+          orderBy: [{ confidence: "desc" }, { trendScore: "desc" }],
+        });
+        allPicks.push(...savedPicks);
+      }
     }
 
-    // Generate fresh picks
-    const generatedPicks = await generateDailyPicks(date, sport as Sport);
+    // Filter for display: hide picks for games that have already started,
+    // but they remain in DB for grading
+    const displayPicks = allPicks
+      .filter((p) => p.gameDate >= now)
+      .filter((p) => p.confidence <= maxStars);
 
-    if (generatedPicks.length === 0) {
-      return NextResponse.json(
-        { success: true, date, sport, picks: [], cached: false },
-        {
-          headers: {
-            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-          },
-        },
-      );
-    }
-
-    // Persist picks to DB
-    const pickData = generatedPicks.map((p) => ({
-      date: dateKey,
-      sport: p.sport,
-      pickType: p.pickType,
-      homeTeam: p.homeTeam,
-      awayTeam: p.awayTeam,
-      gameDate: p.gameDate,
-      pickSide: p.pickSide,
-      line: p.line,
-      pickLabel: p.pickLabel,
-      playerName: p.playerName,
-      propStat: p.propStat,
-      propLine: p.propLine,
-      trendScore: p.trendScore,
-      confidence: p.confidence,
-      headline: p.headline,
-      reasoning: p.reasoning as unknown as import("@prisma/client").Prisma.InputJsonValue,
-    }));
-
-    await prisma.dailyPick.createMany({
-      data: pickData,
-      skipDuplicates: true,
-    });
-
-    // Fetch back from DB to get IDs and consistent format
-    const savedPicks = await prisma.dailyPick.findMany({
-      where: { date: dateKey, sport: sport as Sport },
-      orderBy: [{ confidence: "desc" }, { trendScore: "desc" }],
-    });
-
-    const filtered = savedPicks.filter((p) => p.confidence <= maxStars);
     return NextResponse.json(
-      { success: true, date, sport, picks: filtered, cached: false, tier: tier.label },
+      { success: true, date, sport, picks: displayPicks, cached, tier: tier.label },
       {
         headers: {
           "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
