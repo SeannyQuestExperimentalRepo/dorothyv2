@@ -84,8 +84,8 @@ export function TrendAngles({
   if (!hasAngles && !hasTrends) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="rounded-xl border border-border/60 bg-card p-5">
+      <h3 className="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
         Trend Angles
       </h3>
 
@@ -94,7 +94,7 @@ export function TrendAngles({
         {situationalAngles?.map((angle, i) => (
           <div
             key={`sit-${i}`}
-            className="flex items-start justify-between gap-3 rounded-lg border border-border/40 bg-background/50 p-3"
+            className="flex items-start justify-between gap-3 rounded-lg border border-border/40 bg-muted/20 p-3"
           >
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">{angle.description}</p>
@@ -105,7 +105,7 @@ export function TrendAngles({
                 <span className="text-xs text-muted-foreground">
                   ({angle.rate}%)
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="font-mono text-xs text-muted-foreground">
                   n={angle.sampleSize}
                 </span>
               </div>
@@ -123,7 +123,7 @@ export function TrendAngles({
           .map((trend, i) => (
             <div
               key={`add-${i}`}
-              className="flex items-start justify-between gap-3 rounded-lg border border-border/40 bg-background/50 p-3"
+              className="flex items-start justify-between gap-3 rounded-lg border border-border/40 bg-muted/20 p-3"
             >
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{trend.label}</p>
@@ -137,7 +137,7 @@ export function TrendAngles({
                   <span className="text-xs text-muted-foreground">
                     ({trend.rate}%)
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="font-mono text-xs text-muted-foreground">
                     n={trend.sampleSize}
                   </span>
                 </div>

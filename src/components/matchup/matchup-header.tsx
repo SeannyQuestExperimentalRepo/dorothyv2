@@ -48,14 +48,14 @@ export function MatchupHeader({
   const spreadAbs = spread !== null ? Math.abs(spread) : null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="rounded-xl border border-border/60 bg-card p-6">
       {/* Sport + Date */}
       <div className="mb-4 flex items-center gap-3">
-        <span className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+        <span className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
           {sport}
         </span>
         {gameDate && (
-          <span className="text-sm text-muted-foreground">
+          <span className="font-mono text-sm text-muted-foreground">
             {formatGameDate(gameDate)}
           </span>
         )}
@@ -95,7 +95,7 @@ export function MatchupHeader({
 
       {/* Odds Row */}
       {(spread !== null || overUnder !== null || moneylineHome !== null) && (
-        <div className="mt-5 flex items-center justify-center gap-6 border-t border-border/50 pt-4">
+        <div className="mt-5 flex items-center justify-center gap-6 border-t border-border/40 pt-4">
           {spread !== null && (
             <div className="text-center">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">

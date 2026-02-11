@@ -24,13 +24,13 @@ function formatTime(iso: string): string {
 }
 
 function formatSpread(spread: number | null): string {
-  if (spread == null) return "—";
+  if (spread == null) return "\u2014";
   if (spread > 0) return `+${spread}`;
   return `${spread}`;
 }
 
 function formatML(ml: number | null): string {
-  if (ml == null) return "—";
+  if (ml == null) return "\u2014";
   if (ml > 0) return `+${ml}`;
   return `${ml}`;
 }
@@ -54,40 +54,46 @@ export default function GameCard({
   return (
     <Link
       href={gameUrl}
-      className="block rounded-lg border border-border/60 bg-card p-3 transition-all hover:border-primary/40 hover:shadow-sm"
+      className="group block rounded-lg border border-border/50 bg-card p-3 transition-all hover:border-primary/25 hover:shadow-sm hover:shadow-primary/5"
     >
       {/* Time */}
-      <div className="mb-2 text-[11px] font-medium text-muted-foreground">
+      <div className="mb-2 text-[11px] font-mono text-muted-foreground">
         {formatTime(gameDate)}
       </div>
 
       {/* Teams + Spread */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {/* Away team */}
-        <div className="flex items-center justify-between text-sm">
-          <span className="truncate font-medium">{awayTeam}</span>
-          <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between">
+          <span className="truncate text-sm font-medium text-foreground/90 group-hover:text-foreground">
+            {awayTeam}
+          </span>
+          <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
             {spread != null ? formatSpread(-spread) : ""}
           </span>
         </div>
 
         {/* Home team */}
-        <div className="flex items-center justify-between text-sm">
-          <span className="truncate font-medium">{homeTeam}</span>
-          <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between">
+          <span className="truncate text-sm font-medium text-foreground/90 group-hover:text-foreground">
+            {homeTeam}
+          </span>
+          <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
             {spread != null ? formatSpread(spread) : ""}
           </span>
         </div>
       </div>
 
       {/* O/U and Moneylines */}
-      <div className="mt-2 flex items-center gap-3 text-[11px] text-muted-foreground">
+      <div className="mt-2.5 flex items-center gap-3 border-t border-border/40 pt-2">
         {overUnder != null && (
-          <span>O/U {overUnder}</span>
+          <span className="font-mono text-[11px] text-muted-foreground/70">
+            O/U {overUnder}
+          </span>
         )}
         {moneylineHome != null && moneylineAway != null && (
-          <span className="ml-auto">
-            ML: {formatML(moneylineAway)}/{formatML(moneylineHome)}
+          <span className="ml-auto font-mono text-[11px] text-muted-foreground/70">
+            ML {formatML(moneylineAway)} / {formatML(moneylineHome)}
           </span>
         )}
       </div>

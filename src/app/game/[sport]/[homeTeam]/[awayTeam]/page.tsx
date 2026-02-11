@@ -159,15 +159,15 @@ export default function GameMatchupPage() {
     return (
       <div className="py-8">
         <div className="mb-6">
-          <div className="h-4 w-32 animate-pulse rounded bg-secondary/50" />
+          <div className="h-4 w-32 animate-pulse rounded bg-card/50" />
         </div>
         <div className="space-y-4">
-          <div className="h-48 animate-pulse rounded-xl border border-border/40 bg-secondary/30" />
+          <div className="h-48 animate-pulse rounded-xl border border-border/50 bg-card/40" />
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="h-64 animate-pulse rounded-xl border border-border/40 bg-secondary/30" />
-            <div className="h-64 animate-pulse rounded-xl border border-border/40 bg-secondary/30" />
+            <div className="h-64 animate-pulse rounded-xl border border-border/50 bg-card/40" />
+            <div className="h-64 animate-pulse rounded-xl border border-border/50 bg-card/40" />
           </div>
-          <div className="h-48 animate-pulse rounded-xl border border-border/40 bg-secondary/30" />
+          <div className="h-48 animate-pulse rounded-xl border border-border/50 bg-card/40" />
         </div>
       </div>
     );
@@ -178,12 +178,12 @@ export default function GameMatchupPage() {
       <div className="py-8">
         <Link
           href={`/${sport.toLowerCase()}`}
-          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           &larr; Back to {sport}
         </Link>
-        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-          <p className="text-sm text-red-400">{error}</p>
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center">
+          <p className="text-sm text-destructive">{error}</p>
         </div>
       </div>
     );
@@ -202,7 +202,7 @@ export default function GameMatchupPage() {
           &larr; Back to {sport}
         </Link>
         {durationMs !== null && (
-          <span className="text-xs text-muted-foreground/60">
+          <span className="font-mono text-xs text-muted-foreground/60">
             {durationMs}ms
           </span>
         )}
@@ -274,38 +274,38 @@ export default function GameMatchupPage() {
         </div>
 
         {/* Quick search links */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="rounded-xl border border-border/60 bg-card p-5">
+          <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
             Explore More
           </h3>
           <div className="flex flex-wrap gap-2">
             <Link
               href={`/search?q=${encodeURIComponent(`${homeTeam} ${sport}`)}`}
-              className="rounded-full border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
             >
               {homeTeam} trends
             </Link>
             <Link
               href={`/search?q=${encodeURIComponent(`${awayTeam} ${sport}`)}`}
-              className="rounded-full border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
             >
               {awayTeam} trends
             </Link>
             <Link
               href={`/search?q=${encodeURIComponent(`${homeTeam} home ${sport}`)}`}
-              className="rounded-full border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
             >
               {homeTeam} at home
             </Link>
             <Link
               href={`/search?q=${encodeURIComponent(`${awayTeam} away ${sport}`)}`}
-              className="rounded-full border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
             >
               {awayTeam} on road
             </Link>
             <Link
               href={`/search?q=${encodeURIComponent(`${homeTeam} vs ${awayTeam} ${sport}`)}`}
-              className="rounded-full border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
             >
               Head-to-head history
             </Link>

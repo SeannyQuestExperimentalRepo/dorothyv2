@@ -71,18 +71,18 @@ export default function TodayPage() {
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Today&apos;s Sheet</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Today&apos;s Sheet</h1>
           <p className="mt-1 text-sm text-muted-foreground">{formatDate(date)}</p>
         </div>
-        <div className="flex rounded-lg border border-border">
+        <div className="flex rounded-lg border border-border/60 bg-card">
           {SPORTS.map((s) => (
             <button
               key={s}
               onClick={() => setSport(s)}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors first:rounded-l-lg last:rounded-r-lg ${
+              className={`px-4 py-2 text-sm font-medium transition-all first:rounded-l-lg last:rounded-r-lg ${
                 sport === s
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {s}
@@ -93,8 +93,8 @@ export default function TodayPage() {
 
       {/* Track Record */}
       {recordData && (
-        <div className="mb-6">
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="mb-8">
+          <h2 className="mb-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
             Track Record (Last 30 Days)
           </h2>
           <TrackRecordBar
@@ -107,8 +107,8 @@ export default function TodayPage() {
 
       {/* Loading */}
       {isLoading && (
-        <div className="flex flex-col items-center gap-3 py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="flex flex-col items-center gap-4 py-20">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
           <p className="text-sm text-muted-foreground">
             Analyzing today&apos;s games...
           </p>
@@ -117,18 +117,18 @@ export default function TodayPage() {
 
       {/* Error */}
       {error && !isLoading && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-5 py-4">
           <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
 
       {/* No games */}
       {!isLoading && !error && picks.length === 0 && (
-        <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
-          <p className="text-muted-foreground">
+        <div className="rounded-xl border border-border/40 bg-card px-6 py-16 text-center">
+          <p className="text-lg font-medium text-muted-foreground">
             No {sport} games scheduled for today
           </p>
-          <p className="mt-1 text-sm text-muted-foreground/60">
+          <p className="mt-2 text-sm text-muted-foreground/60">
             Check back on game day for picks and analysis
           </p>
         </div>
@@ -137,10 +137,10 @@ export default function TodayPage() {
       {/* Top Plays */}
       {!isLoading && topPlays.length > 0 && (
         <div className="mb-8">
-          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
             Top Plays
           </h2>
-          <div className="space-y-3">
+          <div className="stagger-in space-y-3">
             {Array.from(
               new Map(
                 topPlays.map((p) => [`${p.awayTeam}@${p.homeTeam}`, p]),
@@ -162,10 +162,10 @@ export default function TodayPage() {
       {/* Player Props */}
       {!isLoading && propPicks.length > 0 && (
         <div className="mb-8">
-          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
             Player Props
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="stagger-in grid gap-3 sm:grid-cols-2">
             {propPicks.map((p) => (
               <PropPickCard key={p.id} pick={p} />
             ))}
@@ -176,7 +176,7 @@ export default function TodayPage() {
       {/* All Games (remaining 3-star) */}
       {!isLoading && remainingGroups.length > 0 && (
         <div className="mb-8">
-          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
             All Games
           </h2>
           <div className="space-y-3">

@@ -125,7 +125,7 @@ export function TrendResults({
     .map((g) => g.ouResult === "OVER");
 
   return (
-    <div className="space-y-6">
+    <div className="stagger-in space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -136,9 +136,9 @@ export function TrendResults({
             {query.team || query.perspective || query.sport} Trends
           </h2>
           <p className="text-sm text-muted-foreground">
-            {gameCount.toLocaleString()} games
+            <span className="font-mono">{gameCount.toLocaleString()}</span> games
             {query.perspective ? ` (${query.perspective})` : ""}
-            {meta.durationMs ? ` \u00b7 ${meta.durationMs}ms` : ""}
+            {meta.durationMs ? <> · <span className="font-mono">{meta.durationMs}ms</span></> : ""}
           </p>
         </div>
         {significance.topFinding &&
@@ -154,7 +154,7 @@ export function TrendResults({
       {/* Top Finding */}
       {significance.topFinding &&
         !significance.topFinding.includes("No statistically") && (
-          <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+          <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
             <p className="text-sm font-medium text-primary">
               {significance.topFinding}
             </p>
@@ -195,7 +195,7 @@ export function TrendResults({
 
       {/* ATS & O/U Streaks */}
       {(atsStreak.length > 0 || ouStreak.length > 0) && (
-        <div className="flex flex-wrap gap-6 rounded-lg border border-border bg-card px-4 py-3">
+        <div className="flex flex-wrap gap-6 rounded-xl border border-border/60 bg-card px-4 py-3">
           {atsStreak.length > 0 && (
             <StreakDots dots={atsStreak} label="Last 10 ATS" />
           )}
@@ -223,14 +223,14 @@ export function TrendResults({
 
       {/* Season Breakdown Table */}
       {summary.bySeasonBreakdown.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-border">
-          <div className="border-b border-border bg-card px-4 py-2.5">
-            <h3 className="text-sm font-semibold">Season Breakdown</h3>
+        <div className="overflow-hidden rounded-xl border border-border/60">
+          <div className="border-b border-border/40 bg-card px-4 py-2.5">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Season Breakdown</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <tr className="border-b border-border/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground/70">
                   <th className="px-4 py-2">Season</th>
                   <th className="px-4 py-2">Games</th>
                   <th className="px-4 py-2">W-L</th>
@@ -262,10 +262,10 @@ export function TrendResults({
                     return (
                       <tr
                         key={s.season}
-                        className={`border-b border-border/50 ${
+                        className={`border-b border-border/40 ${
                           notable
                             ? "bg-primary/5"
-                            : "hover:bg-secondary/50"
+                            : "hover:bg-muted/30"
                         }`}
                       >
                         <td className="px-4 py-2 font-medium">
@@ -282,14 +282,14 @@ export function TrendResults({
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-2 tabular-nums">
+                        <td className="px-4 py-2 font-mono tabular-nums">
                           {s.games}
                         </td>
-                        <td className="px-4 py-2 tabular-nums">
+                        <td className="px-4 py-2 font-mono tabular-nums">
                           {s.wins}-{s.losses}
                         </td>
                         <td
-                          className={`px-4 py-2 tabular-nums ${
+                          className={`px-4 py-2 font-mono tabular-nums ${
                             winPct >= 55
                               ? "text-emerald-400"
                               : winPct <= 45
@@ -299,11 +299,11 @@ export function TrendResults({
                         >
                           {winPct}%
                         </td>
-                        <td className="px-4 py-2 tabular-nums">
+                        <td className="px-4 py-2 font-mono tabular-nums">
                           {s.atsCovered}-{s.atsLost}
                         </td>
                         <td
-                          className={`px-4 py-2 tabular-nums ${
+                          className={`px-4 py-2 font-mono tabular-nums ${
                             atsPct >= 55
                               ? "text-emerald-400"
                               : atsPct <= 45
@@ -324,10 +324,10 @@ export function TrendResults({
 
       {/* Recent Games */}
       {games.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-border">
-          <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2.5">
-            <h3 className="text-sm font-semibold">Recent Games</h3>
-            <span className="text-xs text-muted-foreground">
+        <div className="overflow-hidden rounded-xl border border-border/60">
+          <div className="flex items-center justify-between border-b border-border/40 bg-card px-4 py-2.5">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Recent Games</h3>
+            <span className="font-mono text-xs text-muted-foreground/70">
               Showing {Math.min(games.length, 20)} of{" "}
               {gameCount.toLocaleString()}
             </span>
@@ -335,7 +335,7 @@ export function TrendResults({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <tr className="border-b border-border/40 text-left text-[11px] uppercase tracking-wider text-muted-foreground/70">
                   <th className="px-4 py-2">Date</th>
                   <th className="px-4 py-2">Matchup</th>
                   <th className="px-4 py-2">Score</th>
@@ -350,9 +350,9 @@ export function TrendResults({
                   .map((g, i) => (
                     <tr
                       key={i}
-                      className="border-b border-border/50 hover:bg-secondary/50"
+                      className="border-b border-border/40 hover:bg-muted/30"
                     >
-                      <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">
+                      <td className="whitespace-nowrap px-4 py-2 font-mono text-muted-foreground">
                         {g.gameDate}
                       </td>
                       <td className="px-4 py-2">
@@ -364,10 +364,10 @@ export function TrendResults({
                         </span>
                         <span className="font-medium">{g.homeTeam}</span>
                       </td>
-                      <td className="px-4 py-2 tabular-nums">
+                      <td className="px-4 py-2 font-mono tabular-nums">
                         {g.awayScore}-{g.homeScore}
                       </td>
-                      <td className="px-4 py-2 tabular-nums text-muted-foreground">
+                      <td className="px-4 py-2 font-mono tabular-nums text-muted-foreground">
                         {g.spread !== null
                           ? g.spread > 0
                             ? `+${g.spread}`
@@ -427,9 +427,9 @@ function SignificanceDetail({
   sig: TrendSignificance;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/25">
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <h4 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
           {title}
         </h4>
         <SignificanceBadge strength={sig.strength} />
@@ -437,19 +437,19 @@ function SignificanceDetail({
       <div className="mt-2 space-y-1">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Observed</span>
-          <span className="font-medium tabular-nums">
+          <span className="font-mono font-medium tabular-nums">
             {(sig.observedRate * 100).toFixed(1)}%
           </span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Baseline</span>
-          <span className="tabular-nums text-muted-foreground">
+          <span className="font-mono tabular-nums text-muted-foreground">
             {(sig.baselineRate * 100).toFixed(1)}%
           </span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">p-value</span>
-          <span className="tabular-nums text-muted-foreground">
+          <span className="font-mono tabular-nums text-muted-foreground">
             {sig.pValue < 0.001
               ? "<0.001"
               : sig.pValue.toFixed(3)}
@@ -457,14 +457,14 @@ function SignificanceDetail({
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">95% CI</span>
-          <span className="tabular-nums text-muted-foreground">
+          <span className="font-mono tabular-nums text-muted-foreground">
             [{(sig.confidenceInterval[0] * 100).toFixed(1)}%,{" "}
             {(sig.confidenceInterval[1] * 100).toFixed(1)}%]
           </span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Sample</span>
-          <span className="tabular-nums text-muted-foreground">
+          <span className="font-mono tabular-nums text-muted-foreground">
             n={sig.sampleSize}
           </span>
         </div>

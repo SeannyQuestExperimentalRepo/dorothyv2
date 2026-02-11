@@ -56,9 +56,9 @@ function TeamInjuryList({
 }) {
   return (
     <div className="min-w-0 flex-1">
-      <h4 className="mb-2 text-sm font-bold">{team}</h4>
+      <h4 className="mb-2 text-sm font-semibold">{team}</h4>
       {injuries.length === 0 ? (
-        <p className="py-2 text-sm text-muted-foreground/60">
+        <p className="py-2 text-sm text-muted-foreground/50">
           No reported injuries
         </p>
       ) : (
@@ -85,23 +85,23 @@ export function InjuriesPanel({
 }: InjuriesPanelProps) {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border/40 bg-card p-5">
+      <div className="rounded-xl border border-border/50 bg-card p-5">
         <div className="mb-4 flex items-center justify-between">
-          <div className="h-4 w-28 animate-pulse rounded bg-secondary/50" />
-          <div className="h-3 w-24 animate-pulse rounded bg-secondary/30" />
+          <div className="h-4 w-28 animate-pulse rounded bg-card/50" />
+          <div className="h-3 w-24 animate-pulse rounded bg-card/40" />
         </div>
         <div className="grid gap-6 sm:grid-cols-2">
           <div className="space-y-3">
-            <div className="h-4 w-32 animate-pulse rounded bg-secondary/40" />
-            <div className="h-3 w-full animate-pulse rounded bg-secondary/30" />
-            <div className="h-3 w-3/4 animate-pulse rounded bg-secondary/30" />
-            <div className="h-3 w-5/6 animate-pulse rounded bg-secondary/30" />
+            <div className="h-4 w-32 animate-pulse rounded bg-card/50" />
+            <div className="h-3 w-full animate-pulse rounded bg-card/40" />
+            <div className="h-3 w-3/4 animate-pulse rounded bg-card/40" />
+            <div className="h-3 w-5/6 animate-pulse rounded bg-card/40" />
           </div>
           <div className="space-y-3">
-            <div className="h-4 w-32 animate-pulse rounded bg-secondary/40" />
-            <div className="h-3 w-full animate-pulse rounded bg-secondary/30" />
-            <div className="h-3 w-3/4 animate-pulse rounded bg-secondary/30" />
-            <div className="h-3 w-5/6 animate-pulse rounded bg-secondary/30" />
+            <div className="h-4 w-32 animate-pulse rounded bg-card/50" />
+            <div className="h-3 w-full animate-pulse rounded bg-card/40" />
+            <div className="h-3 w-3/4 animate-pulse rounded bg-card/40" />
+            <div className="h-3 w-5/6 animate-pulse rounded bg-card/40" />
           </div>
         </div>
       </div>
@@ -121,13 +121,13 @@ export function InjuriesPanel({
     : null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="rounded-xl border border-border/60 bg-card p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
           Injury Report
         </h3>
         {updatedDate && (
-          <span className="text-xs text-muted-foreground/50">
+          <span className="font-mono text-[11px] text-muted-foreground/60">
             Updated {updatedDate}
           </span>
         )}

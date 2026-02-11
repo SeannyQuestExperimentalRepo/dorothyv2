@@ -45,7 +45,7 @@ function CompareRow({
     <div className="flex items-center gap-2 py-2">
       <div className="flex-1 text-right">
         <span
-          className={`tabular-nums ${
+          className={`font-mono tabular-nums ${
             homeHighlight
               ? "font-semibold text-emerald-400"
               : awayHighlight
@@ -57,13 +57,13 @@ function CompareRow({
         </span>
       </div>
       <div className="w-28 text-center">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs uppercase tracking-wider text-muted-foreground/70">
           {label}
         </span>
       </div>
       <div className="flex-1 text-left">
         <span
-          className={`tabular-nums ${
+          className={`font-mono tabular-nums ${
             awayHighlight
               ? "font-semibold text-emerald-400"
               : homeHighlight
@@ -85,8 +85,8 @@ export function TeamComparison({
   awayStats,
 }: TeamComparisonProps) {
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+    <div className="rounded-xl border border-border/60 bg-card p-5">
+      <h3 className="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
         Season Comparison
       </h3>
 

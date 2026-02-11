@@ -20,19 +20,19 @@ function StatBox({ label, bucket }: { label: string; bucket: RecordBucket }) {
       ? "text-muted-foreground"
       : bucket.winPct >= 55
         ? "text-emerald-400"
-        : bucket.winPct < 50
+        : bucket.winPct < 45
           ? "text-red-400"
           : "text-foreground";
 
   return (
-    <div className="rounded-lg border border-border bg-card/50 px-3 py-2 text-center">
-      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="rounded-xl border border-border/60 bg-card px-3 py-2 text-center transition-colors hover:border-primary/25">
+      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
         {label}
       </div>
-      <div className={`mt-0.5 text-lg font-bold tabular-nums ${pctColor}`}>
+      <div className={`mt-0.5 font-mono text-lg font-bold tabular-nums ${pctColor}`}>
         {bucket.total > 0 ? `${bucket.winPct}%` : "—"}
       </div>
-      <div className="text-xs tabular-nums text-muted-foreground">
+      <div className="font-mono text-xs tabular-nums text-muted-foreground">
         {bucket.wins}-{bucket.losses}
         {bucket.pushes > 0 ? `-${bucket.pushes}` : ""}
       </div>
@@ -43,7 +43,7 @@ function StatBox({ label, bucket }: { label: string; bucket: RecordBucket }) {
 export function TrackRecordBar({ overall, byType, byConfidence }: TrackRecordBarProps) {
   if (overall.total === 0) {
     return (
-      <div className="rounded-xl border border-border bg-card/50 px-4 py-3 text-center text-sm text-muted-foreground">
+      <div className="rounded-xl border border-border/60 bg-card px-4 py-3 text-center text-sm text-muted-foreground">
         Track record builds as games are played and graded
       </div>
     );

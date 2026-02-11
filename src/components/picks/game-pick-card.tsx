@@ -45,7 +45,7 @@ function PickBox({ pick }: { pick: Pick }) {
           : "";
 
   return (
-    <div className="flex-1 rounded-lg border border-border bg-background/50 p-3">
+    <div className="flex-1 rounded-xl border border-border/60 bg-card p-3">
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="text-sm font-semibold">{pick.pickLabel}</div>
@@ -53,7 +53,7 @@ function PickBox({ pick }: { pick: Pick }) {
         </div>
         <div className="flex flex-col items-end gap-1">
           <ConfidenceStars confidence={pick.confidence} />
-          <span className="text-xs tabular-nums text-muted-foreground">
+          <span className="font-mono text-xs tabular-nums text-muted-foreground/70">
             Score: {pick.trendScore}
           </span>
         </div>
@@ -69,13 +69,13 @@ function PickBox({ pick }: { pick: Pick }) {
 
       <button
         onClick={() => setExpanded(!expanded)}
-        className="mt-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        className="mt-2 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
       >
         {expanded ? "Hide reasoning ▴" : "Show reasoning ▾"}
       </button>
 
       {expanded && (
-        <div className="mt-2 space-y-1.5">
+        <div className="mt-2 space-y-1.5 border-t border-border/40 pt-2">
           {pick.reasoning.map((r, i) => (
             <div
               key={i}
@@ -102,17 +102,17 @@ export function GamePickCard({ spreadPick, ouPick }: GamePickCardProps) {
   });
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/25">
       {/* Header */}
       <div className="mb-3 flex items-baseline justify-between">
         <div className="text-sm font-medium">
           {pick.awayTeam} <span className="text-muted-foreground">@</span> {pick.homeTeam}
         </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
           {spreadPick?.line != null && (
-            <span>Spread: {spreadPick.line > 0 ? "+" : ""}{spreadPick.line}</span>
+            <span className="font-mono">Spread: {spreadPick.line > 0 ? "+" : ""}{spreadPick.line}</span>
           )}
-          {ouPick?.line != null && <span>O/U: {ouPick.line}</span>}
+          {ouPick?.line != null && <span className="font-mono">O/U: {ouPick.line}</span>}
           <span>{gameTime} ET</span>
         </div>
       </div>

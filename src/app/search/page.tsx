@@ -77,15 +77,15 @@ function SearchPageInner() {
     <div className="mx-auto max-w-5xl px-4 py-8">
       {/* Search Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Search Trends</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-3xl font-bold tracking-tight">Search Trends</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           Ask a question in plain English about historical betting trends
         </p>
       </div>
 
       {/* Search Input */}
       <div className="relative">
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-card shadow-lg focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/30">
+        <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card shadow-lg transition-all focus-within:border-primary/40 focus-within:shadow-[0_0_20px_hsl(168_80%_45%/0.1)]">
           <svg
             className="ml-4 h-5 w-5 shrink-0 text-muted-foreground"
             fill="none"
@@ -103,7 +103,7 @@ function SearchPageInner() {
             ref={inputRef}
             type="text"
             placeholder="e.g. Home underdogs in primetime NFL..."
-            className="flex-1 bg-transparent px-2 py-3.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent px-2 py-4 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -112,7 +112,7 @@ function SearchPageInner() {
           <button
             onClick={() => handleSearch()}
             disabled={loading || !query.trim()}
-            className="mr-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            className="mr-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-40"
           >
             {loading ? (
               <span className="flex items-center gap-2">
@@ -149,10 +149,10 @@ function SearchPageInner() {
       {/* Example Queries */}
       {!result && !loading && !error && (
         <div className="mt-6">
-          <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
             Try these examples
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="stagger-in flex flex-wrap gap-2">
             {EXAMPLE_QUERIES.map((eq) => (
               <button
                 key={eq}
@@ -160,7 +160,7 @@ function SearchPageInner() {
                   setQuery(eq);
                   handleSearch(eq);
                 }}
-                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                className="rounded-full border border-border/60 bg-card px-3.5 py-1.5 text-xs text-muted-foreground transition-all hover:border-primary/30 hover:text-foreground"
               >
                 {eq}
               </button>
@@ -171,8 +171,10 @@ function SearchPageInner() {
 
       {/* Loading State */}
       {loading && (
-        <div className="mt-12 flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="mt-16 flex flex-col items-center gap-4">
+          <div className="relative h-10 w-10">
+            <div className="absolute inset-0 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+          </div>
           <p className="text-sm text-muted-foreground">
             Analyzing trends across thousands of games...
           </p>
@@ -181,7 +183,7 @@ function SearchPageInner() {
 
       {/* Error State */}
       {error && !loading && (
-        <div className="mt-8 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+        <div className="mt-8 rounded-xl border border-destructive/20 bg-destructive/5 px-5 py-4">
           <p className="text-sm text-destructive">{error}</p>
         </div>
       )}

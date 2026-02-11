@@ -1,55 +1,70 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-const sports = [
+const navItems = [
   { name: "NFL", href: "/nfl" },
   { name: "NCAAF", href: "/ncaaf" },
   { name: "NCAAMB", href: "/ncaamb" },
+  { name: "Trends", href: "/trends" },
+  { name: "Props", href: "/props" },
+  { name: "Today", href: "/today" },
 ];
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
         <div className="flex items-center gap-8">
-          <Link href="/" className="text-xl font-bold tracking-tight">
-            <span className="text-primary">Trend</span>
-            <span className="text-foreground">Line</span>
+          {/* Logo with glow */}
+          <Link href="/" className="group flex items-center gap-1.5">
+            <div className="relative">
+              <span className="text-xl font-bold tracking-tight text-primary">
+                Trend
+              </span>
+              <span className="text-xl font-bold tracking-tight text-foreground">
+                Line
+              </span>
+              <div className="absolute -bottom-0.5 left-0 h-px w-full bg-gradient-to-r from-primary/60 via-primary/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+            </div>
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex">
-            {sports.map((sport) => (
-              <Link
-                key={sport.name}
-                href={sport.href}
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                {sport.name}
-              </Link>
-            ))}
-            <Link
-              href="/trends"
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              Trends
-            </Link>
-            <Link
-              href="/today"
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              Today
-            </Link>
+          {/* Desktop nav with active indicator */}
+          <nav className="hidden items-center gap-0.5 md:flex">
+            {navItems.map((item) => {
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/" && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`relative rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {item.name}
+                  {isActive && (
+                    <span className="absolute -bottom-[9px] left-1/2 h-px w-4 -translate-x-1/2 bg-primary" />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Search button */}
           <Link
             href="/search"
-            className="hidden items-center gap-2 rounded-md bg-secondary px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground sm:flex"
+            className="hidden items-center gap-2 rounded-lg border border-border/60 bg-secondary/40 px-3 py-1.5 text-sm text-muted-foreground transition-all hover:border-primary/30 hover:text-foreground sm:flex"
           >
             <svg
               className="h-3.5 w-3.5"
@@ -64,8 +79,10 @@ export function Header() {
                 d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
               />
             </svg>
-            Search trends...
+            <span className="hidden lg:inline">Search trends...</span>
           </Link>
+
+          {/* Mobile menu toggle */}
           <button
             className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -95,32 +112,28 @@ export function Header() {
         </div>
       </div>
 
+      {/* Mobile menu */}
       {mobileMenuOpen && (
-        <nav className="border-t border-border px-4 py-3 md:hidden">
-          {sports.map((sport) => (
-            <Link
-              key={sport.name}
-              href={sport.href}
-              className="block rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {sport.name}
-            </Link>
-          ))}
-          <Link
-            href="/trends"
-            className="block rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Trends
-          </Link>
-          <Link
-            href="/today"
-            className="block rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Today
-          </Link>
+        <nav className="border-t border-border/40 bg-background/95 px-4 py-3 backdrop-blur-xl md:hidden">
+          {navItems.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/" && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item.name}
+              </Link>
+            );
+          })}
           <Link
             href="/search"
             className="block rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"

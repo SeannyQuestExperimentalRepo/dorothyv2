@@ -20,14 +20,14 @@ export function RecentGamesTable({ team, games }: RecentGamesTableProps) {
   if (games.length === 0) return null;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="border-b border-border px-4 py-3">
-        <h3 className="text-sm font-semibold">{team} — Recent Games</h3>
+    <div className="overflow-hidden rounded-xl border border-border/60 bg-card">
+      <div className="border-b border-border/40 px-4 py-3">
+        <h3 className="text-sm font-medium">{team} — Recent Games</h3>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-border/40 text-left text-xs uppercase tracking-wider text-muted-foreground/70">
               <th className="px-4 py-2">Date</th>
               <th className="px-4 py-2">Matchup</th>
               <th className="px-4 py-2">Score</th>
@@ -40,9 +40,9 @@ export function RecentGamesTable({ team, games }: RecentGamesTableProps) {
             {games.map((g, i) => (
               <tr
                 key={i}
-                className="border-b border-border/30 hover:bg-secondary/50"
+                className="border-b border-border/30 hover:bg-muted/30"
               >
-                <td className="whitespace-nowrap px-4 py-2 text-muted-foreground">
+                <td className="whitespace-nowrap px-4 py-2 font-mono text-xs text-muted-foreground">
                   {g.gameDate}
                 </td>
                 <td className="px-4 py-2">

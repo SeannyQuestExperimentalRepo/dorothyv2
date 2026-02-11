@@ -47,7 +47,7 @@ export function PropPickCard({ pick }: PropPickCardProps) {
   const hitRate = hitRateMatch ? parseInt(hitRateMatch[1]) : null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/25">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold">{pick.pickLabel}</div>
@@ -59,11 +59,11 @@ export function PropPickCard({ pick }: PropPickCardProps) {
           <ConfidenceStars confidence={pick.confidence} />
           {hitRate !== null && (
             <span
-              className={`text-lg font-bold tabular-nums ${
-                hitRate >= 70
+              className={`font-mono text-2xl font-bold tabular-nums ${
+                hitRate >= 55
                   ? "text-emerald-400"
-                  : hitRate >= 60
-                    ? "text-blue-400"
+                  : hitRate < 45
+                    ? "text-red-400"
                     : "text-foreground"
               }`}
             >
@@ -81,7 +81,7 @@ export function PropPickCard({ pick }: PropPickCardProps) {
             {pick.result}
           </span>
           {pick.actualValue !== null && (
-            <span className="text-xs tabular-nums text-muted-foreground">
+            <span className="font-mono text-xs tabular-nums text-muted-foreground">
               Actual: {pick.actualValue}
             </span>
           )}
@@ -90,13 +90,13 @@ export function PropPickCard({ pick }: PropPickCardProps) {
 
       <button
         onClick={() => setExpanded(!expanded)}
-        className="mt-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        className="mt-2 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
       >
         {expanded ? "Hide details ▴" : "Show details ▾"}
       </button>
 
       {expanded && (
-        <div className="mt-2 space-y-1.5">
+        <div className="mt-2 space-y-1.5 border-t border-border/40 pt-2">
           {pick.reasoning.map((r, i) => (
             <div key={i} className="flex items-center gap-2 text-xs">
               <SignificanceBadge strength={r.strength} size="sm" />

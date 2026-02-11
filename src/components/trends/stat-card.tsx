@@ -22,17 +22,19 @@ export function StatCard({
   };
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="glass-card gradient-border rounded-lg p-4 transition-colors">
+      <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
         {label}
       </p>
       <p
-        className={`${size === "lg" ? "mt-1 text-3xl" : "mt-0.5 text-2xl"} font-bold tabular-nums ${sentimentColor[sentiment]}`}
+        className={`${size === "lg" ? "mt-1.5 text-3xl" : "mt-1 text-2xl"} font-bold font-mono tabular-nums tracking-tight number-reveal ${sentimentColor[sentiment]}`}
       >
         {value}
       </p>
       {subtext && (
-        <p className="mt-0.5 text-xs text-muted-foreground">{subtext}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground tracking-wide">
+          {subtext}
+        </p>
       )}
     </div>
   );
