@@ -30,10 +30,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Use start of today (UTC) so all of today's games appear,
-    // even if some have already tipped off
-    const now = new Date();
-    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+    // Use start of today in Eastern Time so games align with the US sports calendar.
+    // Without this, yesterday's 7 PM+ ET games bleed into "today" because they cross
+    // UTC midnight (e.g. 7 PM ET = 00:00 UTC next day).
+    const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const todayStart = new Date(todayStr + "T05:00:00Z"); // ET midnight ≈ 05:00 UTC (EST)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: Record<string, any> = {
