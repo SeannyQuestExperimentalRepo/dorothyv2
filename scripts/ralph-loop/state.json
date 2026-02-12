@@ -1,0 +1,26 @@
+{
+  "branch": "experimental/overnight-20260212",
+  "started_at": null,
+  "current_section": 0,
+  "current_iteration": 0,
+  "current_phase": "debug",
+  "total_bugs_found": 0,
+  "total_bugs_fixed": 0,
+  "sections_completed": [],
+  "debug_baseline": {
+    "tsc_errors": null,
+    "build_errors": null,
+    "lint_warnings": null,
+    "runtime_errors": null
+  },
+  "debug_current": {
+    "tsc_errors": null,
+    "build_errors": null,
+    "lint_warnings": null,
+    "runtime_errors": null
+  },
+  "section_history": [],
+  "decisions_needed": [],
+  "lessons_learned": [],
+  "compaction_count": 0
+}

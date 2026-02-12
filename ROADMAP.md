@@ -1,6 +1,6 @@
 # TrendLine — Development Roadmap
 
-*Last updated: Feb 11, 2026*
+*Last updated: Feb 12, 2026*
 
 ## Current State
 
@@ -246,3 +246,50 @@ Pricing page is built with these tiers:
 | **Admin** | Internal | Everything |
 
 **Blocker:** Stripe integration (Priority 1 above).
+
+---
+
+## Ralph Loop — Overnight Automation Sections
+
+*Added Feb 12, 2026. These sections map to the ralph loop overnight development protocol at `scripts/ralph-loop/RALPH-PROMPT.md`.*
+
+### Section 0: Debug Sweep (Pre-Roadmap)
+**Status**: Pending
+**Goal**: Stabilize codebase — find and fix all TypeScript errors, build warnings, lint issues, unsafe patterns (missing try/catch, null access, dead exports).
+**Success**: ≥80% reduction in total issues from baseline. Zero TSC errors. Clean build.
+
+### Section 1: Stripe Revenue Integration
+**Status**: Pending (blocked on Stripe API keys)
+**Goal**: Connect Stripe to existing pricing page. Checkout → webhook → role update → portal.
+**Files**: `prisma/schema.prisma`, `src/app/api/stripe/checkout/route.ts`, `src/app/api/stripe/webhook/route.ts`, `src/app/api/stripe/portal/route.ts`, `src/app/pricing/page.tsx`
+**Blocker**: Need Stripe test-mode API keys from Sean.
+
+### Section 2: Email Notifications for Saved Trends
+**Status**: Pending (blocked on email service choice)
+**Goal**: Email users when their saved trends trigger on today's games.
+**Files**: `src/lib/email.ts`, `src/lib/trend-evaluator.ts`, `src/app/trends/saved/page.tsx`
+**Blocker**: Need email service choice (Resend vs SendGrid vs SES) + API key.
+
+### Section 3: E2E Test Suite (Playwright)
+**Status**: Pending
+**Goal**: Automated tests for 5 critical user journeys.
+**Files**: `playwright.config.ts`, `tests/e2e/*.spec.ts`
+
+### Section 4: Prisma Migration Baseline
+**Status**: Pending
+**Goal**: Generate initial migration SQL so `prisma migrate deploy` works in CI/CD.
+**Files**: `prisma/migrations/0_init/migration.sql`
+**Note**: SQL generation only — Sean runs `prisma migrate resolve` manually.
+
+### Section 5: Predictive Model v2 (ML Pipeline)
+**Status**: Pending (blocked on Python vs TS decision)
+**Goal**: Train ML model on historical signal outputs, calibrate confidence tiers.
+**Blocker**: Need decision on Python (scikit-learn) vs TypeScript (ml.js).
+
+### Section 6: Community & Social Features
+**Status**: Pending
+**Goal**: Public trend leaderboard, social sharing, OG image generation.
+
+### Section 7: NBA Support
+**Status**: Pending
+**Goal**: Add NBA as 4th sport. Schema + scraper + trend engine + pick engine + UI.
