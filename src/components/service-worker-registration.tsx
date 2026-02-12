@@ -33,10 +33,12 @@ export function ServiceWorkerRegistration() {
 
   const handleUpdate = () => {
     if (registration?.waiting) {
-      // Wait for the new SW to take control before reloading
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
+      // Wait for the new SW to take control before reloading (self-removing listener)
+      const onControllerChange = () => {
+        navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
         window.location.reload();
-      });
+      };
+      navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
       registration.waiting.postMessage({ type: "SKIP_WAITING" });
     }
     setUpdateAvailable(false);

@@ -73,6 +73,7 @@ export function oddsToDecimal(odds: number): number {
 /** Decimal odds to American */
 export function decimalToAmerican(decimal: number): number {
   if (decimal >= 2) return Math.round((decimal - 1) * 100);
+  if (decimal <= 1) return 0; // Guard: decimal=1 → division by zero, ≤1 is invalid
   return Math.round(-100 / (decimal - 1));
 }
 

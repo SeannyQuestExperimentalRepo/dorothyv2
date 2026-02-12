@@ -7,14 +7,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { authLimiter, applyRateLimit } from "@/lib/rate-limit";
+import { publicLimiter, applyRateLimit } from "@/lib/rate-limit";
 import { VALID_SPORTS } from "@/lib/trend-engine";
 import type { Sport } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const limited = applyRateLimit(req, authLimiter);
+  const limited = applyRateLimit(req, publicLimiter);
   if (limited) return limited;
 
   const sport = req.nextUrl.searchParams.get("sport")?.toUpperCase();

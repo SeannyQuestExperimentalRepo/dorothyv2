@@ -99,8 +99,13 @@ export function LineMovementChart({ sport, homeTeam, awayTeam }: LineMovementCha
   const current = chartData[chartData.length - 1];
   const spreadMoved = opening.spread != null && current.spread != null;
   const totalMoved = opening.total != null && current.total != null;
-  const spreadDelta = spreadMoved ? current.spread! - opening.spread! : 0;
-  const totalDelta = totalMoved ? current.total! - opening.total! : 0;
+  const spreadDelta = spreadMoved ? (current.spread ?? 0) - (opening.spread ?? 0) : 0;
+  const totalDelta = totalMoved ? (current.total ?? 0) - (opening.total ?? 0) : 0;
+  // Safe accessors (guarded by spreads.length/totals.length > 0 checks in JSX)
+  const currentSpread = current.spread ?? 0;
+  const openingSpread = opening.spread ?? 0;
+  const currentTotal = current.total ?? 0;
+  const openingTotal = opening.total ?? 0;
 
   // Domain padding for axes
   const spreads = chartData.map((d) => d.spread).filter((v): v is number => v != null);
@@ -131,7 +136,7 @@ export function LineMovementChart({ sport, homeTeam, awayTeam }: LineMovementCha
             </p>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="font-mono text-lg font-bold tabular-nums">
-                {current.spread! > 0 ? "+" : ""}{current.spread!.toFixed(1)}
+                {currentSpread > 0 ? "+" : ""}{currentSpread.toFixed(1)}
               </span>
               {spreadMoved && spreadDelta !== 0 && (
                 <span
@@ -144,7 +149,7 @@ export function LineMovementChart({ sport, homeTeam, awayTeam }: LineMovementCha
               )}
             </div>
             <p className="text-[10px] text-muted-foreground">
-              opened {opening.spread! > 0 ? "+" : ""}{opening.spread!.toFixed(1)}
+              opened {openingSpread > 0 ? "+" : ""}{openingSpread.toFixed(1)}
             </p>
           </div>
         )}
@@ -155,7 +160,7 @@ export function LineMovementChart({ sport, homeTeam, awayTeam }: LineMovementCha
             </p>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="font-mono text-lg font-bold tabular-nums">
-                {current.total!.toFixed(1)}
+                {currentTotal.toFixed(1)}
               </span>
               {totalMoved && totalDelta !== 0 && (
                 <span
@@ -168,7 +173,7 @@ export function LineMovementChart({ sport, homeTeam, awayTeam }: LineMovementCha
               )}
             </div>
             <p className="text-[10px] text-muted-foreground">
-              opened {opening.total!.toFixed(1)}
+              opened {openingTotal.toFixed(1)}
             </p>
           </div>
         )}
@@ -199,7 +204,7 @@ export function LineMovementChart({ sport, homeTeam, awayTeam }: LineMovementCha
               />
               <Tooltip content={<SpreadTooltip />} />
               <ReferenceLine
-                y={opening.spread!}
+                y={openingSpread}
                 stroke="hsl(var(--muted-foreground))"
                 strokeDasharray="4 4"
                 opacity={0.4}
@@ -241,7 +246,7 @@ export function LineMovementChart({ sport, homeTeam, awayTeam }: LineMovementCha
               />
               <Tooltip content={<SpreadTooltip />} />
               <ReferenceLine
-                y={opening.total!}
+                y={openingTotal}
                 stroke="hsl(var(--muted-foreground))"
                 strokeDasharray="4 4"
                 opacity={0.4}

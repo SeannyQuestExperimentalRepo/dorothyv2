@@ -103,7 +103,7 @@ export default function GameCard({
             <span className={`ml-2 shrink-0 font-mono text-sm font-semibold tabular-nums ${
               isLive ? "text-foreground" : "text-foreground/80"
             }`}>
-              {liveScore!.awayScore ?? "—"}
+              {liveScore?.awayScore ?? "—"}
             </span>
           ) : (
             <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
@@ -121,7 +121,7 @@ export default function GameCard({
             <span className={`ml-2 shrink-0 font-mono text-sm font-semibold tabular-nums ${
               isLive ? "text-foreground" : "text-foreground/80"
             }`}>
-              {liveScore!.homeScore ?? "—"}
+              {liveScore?.homeScore ?? "—"}
             </span>
           ) : (
             <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
