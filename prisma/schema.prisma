@@ -14,6 +14,7 @@ enum Sport {
   NFL
   NCAAF
   NCAAMB
+  NBA
 }
 
 enum VenueType {
@@ -83,6 +84,11 @@ model Team {
   ncaambHomeGames NCAAMBGame[] @relation("NCAAMBHomeTeam")
   ncaambAwayGames NCAAMBGame[] @relation("NCAAMBAwayTeam")
   ncaambWins      NCAAMBGame[] @relation("NCAAMBWinner")
+
+  // NBA relations
+  nbaHomeGames NBAGame[] @relation("NBAHomeTeam")
+  nbaAwayGames NBAGame[] @relation("NBAAwayTeam")
+  nbaWins      NBAGame[] @relation("NBAWinner")
 
   @@unique([sport, name])
   @@index([sport])
@@ -260,6 +266,55 @@ model NCAAMBGame {
   @@index([isTournament])
   @@index([isTournament, tournamentRound])
   @@index([isConferenceGame])
+  @@index([season, homeTeamId, spread])
+  @@index([homeTeamId, season])
+  @@index([awayTeamId, season])
+}
+
+// ─── NBA GAMES ─────────────────────────────────────────────────────────────
+
+model NBAGame {
+  id              Int              @id @default(autoincrement())
+  season          Int              // Year the season ends (2026 = 2025-26 season)
+  gameDate        DateTime
+  tipoffTime      String?          // "7:30 PM" ET
+  dayOfWeek       String           // "Mon", "Tue", etc.
+  homeTeamId      Int
+  homeTeam        Team             @relation("NBAHomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId      Int
+  awayTeam        Team             @relation("NBAAwayTeam", fields: [awayTeamId], references: [id])
+  homeScore       Int?
+  awayScore       Int?
+  scoreDifference Int?             // homeScore - awayScore (signed)
+  winnerId        Int?
+  winner          Team?            @relation("NBAWinner", fields: [winnerId], references: [id])
+  isPrimetime     Boolean          @default(false)
+  primetimeSlot   String?          // "National TV", "ESPN", "TNT"
+  isPlayoff       Boolean          @default(false)
+  playoffRound    String?          // "Play-In", "First Round", "Conference Semis", etc.
+  isAllStar       Boolean          @default(false)
+  isNeutralSite   Boolean          @default(false)
+  // Betting
+  spread          Float?           // Negative = home favored
+  overUnder       Float?
+  moneylineHome   Int?             // e.g., -150
+  moneylineAway   Int?             // e.g., +130
+  spreadResult    SpreadResult?
+  ouResult        OUResult?
+  overtimes       Int              @default(0)
+  // NO weather fields — basketball is indoors
+  source          String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([gameDate, homeTeamId, awayTeamId])
+  @@index([season])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([gameDate])
+  @@index([spread])
+  @@index([isPlayoff])
+  @@index([isPrimetime])
   @@index([season, homeTeamId, spread])
   @@index([homeTeamId, season])
   @@index([awayTeamId, season])

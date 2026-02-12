@@ -66,7 +66,7 @@ const SYSTEM_PROMPT = `You are a sports betting trend query parser. Your job is 
 Return a JSON object with exactly these keys:
 {
   "trendQuery": {
-    "sport": "NFL" | "NCAAF" | "NCAAMB" | "ALL",
+    "sport": "NFL" | "NCAAF" | "NCAAMB" | "NBA" | "ALL",
     "team": string | undefined,
     "perspective": "home" | "away" | "favorite" | "underdog" | "team" | "opponent" | undefined,
     "filters": [{ "field": string, "operator": "eq"|"neq"|"gt"|"gte"|"lt"|"lte"|"in"|"notIn"|"contains"|"between", "value": any }],
@@ -82,7 +82,7 @@ Return a JSON object with exactly these keys:
 ## Available filter fields and their types
 
 ### Core game info
-- sport: "NFL" | "NCAAF" | "NCAAMB"
+- sport: "NFL" | "NCAAF" | "NCAAMB" | "NBA"
 - season: number (year)
 - gameDate: string (ISO date)
 - homeTeam / awayTeam: string
@@ -668,7 +668,7 @@ export async function parseNaturalLanguageQuery(
 // Validation & normalization
 // ---------------------------------------------------------------------------
 
-const VALID_SPORTS: Set<string> = new Set(["NFL", "NCAAF", "NCAAMB", "ALL"]);
+const VALID_SPORTS: Set<string> = new Set(["NFL", "NCAAF", "NCAAMB", "NBA", "ALL"]);
 const VALID_PERSPECTIVES: Set<string> = new Set([
   "home",
   "away",

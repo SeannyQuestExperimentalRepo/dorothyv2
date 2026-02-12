@@ -19,6 +19,7 @@ const SPORT_KEY_MAP: Record<string, string> = {
   NFL: "americanfootball_nfl",
   NCAAF: "americanfootball_ncaaf",
   NCAAMB: "basketball_ncaab",
+  NBA: "basketball_nba",
 };
 
 // Preferred sportsbook order for "best line" extraction

@@ -112,6 +112,15 @@ const SPREAD_WEIGHTS: Record<string, Record<string, number>> = {
     h2h: 0.10,
     situational: 0.10,
   },
+  NBA: {
+    modelEdge: 0.25,
+    seasonATS: 0.15,
+    trendAngles: 0.25,
+    recentForm: 0.15,
+    h2h: 0.05,
+    situational: 0.05,
+    restDays: 0.10,
+  },
 };
 
 const OU_WEIGHTS: Record<string, Record<string, number>> = {
@@ -136,6 +145,14 @@ const OU_WEIGHTS: Record<string, Record<string, number>> = {
     trendAngles: 0.20,
     recentForm: 0.15,
     h2hWeather: 0.25,
+  },
+  NBA: {
+    modelEdge: 0.25,
+    seasonOU: 0.20,
+    trendAngles: 0.20,
+    recentForm: 0.15,
+    h2hWeather: 0.05,
+    tempoDiff: 0.15,
   },
 };
 
@@ -738,6 +755,9 @@ async function discoverTeamAngles(
   const ou: OUAngleSignal[] = [];
 
   try {
+    // Reverse lookup only supports NFL/NCAAF/NCAAMB — skip for NBA
+    if (sport === "NBA") return { ats, ou };
+
     const result = await executeTeamReverseLookup(
       sport,
       team,

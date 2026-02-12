@@ -26,6 +26,7 @@ async function fetchPublicTrends(sport?: string): Promise<PublicTrend[]> {
 const SPORTS = [
   { key: "", label: "All" },
   { key: "NCAAMB", label: "NCAAMB" },
+  { key: "NBA", label: "NBA" },
   { key: "NFL", label: "NFL" },
   { key: "NCAAF", label: "NCAAF" },
 ];

@@ -12,7 +12,7 @@ import { publicLimiter, applyRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-const VALID_SPORTS = ["NFL", "NCAAF", "NCAAMB"];
+const VALID_SPORTS = ["NFL", "NCAAF", "NCAAMB", "NBA"];
 
 export async function GET(request: NextRequest) {
   const limited = applyRateLimit(request, publicLimiter);

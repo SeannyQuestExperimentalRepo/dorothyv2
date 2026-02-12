@@ -10,7 +10,7 @@ import {
 } from "@/hooks/use-bets";
 import type { Bet, CreateBetInput } from "@/hooks/use-bets";
 
-const SPORTS = ["NFL", "NCAAF", "NCAAMB"] as const;
+const SPORTS = ["NFL", "NCAAF", "NCAAMB", "NBA"] as const;
 const BET_TYPES = [
   "SPREAD",
   "OVER_UNDER",

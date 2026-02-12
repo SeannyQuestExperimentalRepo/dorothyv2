@@ -723,6 +723,7 @@ const TEAM_SCHEDULE_URLS: Record<Sport, string> = {
   NFL: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams",
   NCAAF: "https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams",
   NCAAMB: "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams",
+  NBA: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams",
 };
 
 interface ESPNTeamScheduleEvent {

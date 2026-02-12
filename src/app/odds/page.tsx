@@ -9,12 +9,13 @@ const SignificantMovesCard = dynamic(
   { ssr: false }
 );
 
-const SPORTS = ["NCAAMB", "NFL", "NCAAF"] as const;
+const SPORTS = ["NCAAMB", "NBA", "NFL", "NCAAF"] as const;
 
 /** Pick the sport most likely to have games today */
 function defaultSport(): string {
   const m = new Date().getMonth();
   if (m >= 10 || m <= 2) return "NCAAMB";
+  if (m >= 9 || m <= 5) return "NBA";
   if (m >= 8) return "NFL";
   return "NFL";
 }

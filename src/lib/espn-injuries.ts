@@ -38,6 +38,7 @@ const INJURY_URLS: Record<Sport, string> = {
   NFL: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries",
   NCAAF: "https://site.api.espn.com/apis/site/v2/sports/football/college-football/injuries",
   NCAAMB: "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/injuries",
+  NBA: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
 };
 
 const FETCH_TIMEOUT = 10_000;

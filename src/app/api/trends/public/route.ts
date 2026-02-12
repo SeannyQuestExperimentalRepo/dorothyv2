@@ -13,7 +13,7 @@ import type { Sport } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-const VALID_SPORTS: Sport[] = ["NFL", "NCAAF", "NCAAMB"];
+const VALID_SPORTS: Sport[] = ["NFL", "NCAAF", "NCAAMB", "NBA"];
 
 export async function GET(req: NextRequest) {
   try {

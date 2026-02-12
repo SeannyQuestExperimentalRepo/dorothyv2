@@ -17,7 +17,7 @@ import { features } from "@/lib/config";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-const VALID_SPORTS = ["NFL", "NCAAF", "NCAAMB"];
+const VALID_SPORTS = ["NFL", "NCAAF", "NCAAMB", "NBA"];
 
 function todayET(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });

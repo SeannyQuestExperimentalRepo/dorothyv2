@@ -13,7 +13,7 @@ import type { Sport } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-const VALID_SPORTS = ["NFL", "NCAAF", "NCAAMB"];
+const VALID_SPORTS = ["NFL", "NCAAF", "NCAAMB", "NBA"];
 
 // ─── GET: List saved trends ──────────────────────────────────────────────────
 

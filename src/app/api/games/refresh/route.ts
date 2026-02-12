@@ -15,7 +15,7 @@ import type { Sport } from "@/lib/espn-api";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-const VALID_SPORTS: Sport[] = ["NFL", "NCAAF", "NCAAMB"];
+const VALID_SPORTS: Sport[] = ["NFL", "NCAAF", "NCAAMB", "NBA"];
 
 export async function POST(request: NextRequest) {
   const limited = applyRateLimit(request, publicLimiter);

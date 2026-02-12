@@ -22,7 +22,7 @@ import { espnOverrides } from "./espn-team-mapping";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type Sport = "NFL" | "NCAAF" | "NCAAMB";
+export type Sport = "NFL" | "NCAAF" | "NCAAMB" | "NBA";
 
 export interface ESPNGame {
   espnId: string;
@@ -82,12 +82,14 @@ const SCOREBOARD_URLS: Record<Sport, string> = {
   NFL: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
   NCAAF: "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard",
   NCAAMB: "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard",
+  NBA: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
 };
 
 const ODDS_URLS: Record<Sport, string> = {
   NFL: "https://site.web.api.espn.com/apis/v3/sports/football/nfl/odds",
   NCAAF: "https://site.web.api.espn.com/apis/v3/sports/football/college-football/odds",
   NCAAMB: "https://site.web.api.espn.com/apis/v3/sports/basketball/mens-college-basketball/odds",
+  NBA: "https://site.web.api.espn.com/apis/v3/sports/basketball/nba/odds",
 };
 
 const FETCH_TIMEOUT = 10_000; // 10 seconds
@@ -468,6 +470,7 @@ const TEAM_MAPS: Record<Sport, Record<string, string>> = {
   NFL: nflTeamNameMap,
   NCAAF: ncaafTeamNameMap,
   NCAAMB: ncaambTeamNameMap,
+  NBA: {},
 };
 
 /**

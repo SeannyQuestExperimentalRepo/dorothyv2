@@ -7,13 +7,15 @@ import { TrackRecordBar } from "@/components/picks/track-record-bar";
 import { GamePickCard } from "@/components/picks/game-pick-card";
 import { PropPickCard } from "@/components/picks/prop-pick-card";
 
-const SPORTS = ["NCAAMB", "NFL", "NCAAF"] as const;
+const SPORTS = ["NCAAMB", "NBA", "NFL", "NCAAF"] as const;
 
 /** Pick the sport most likely to have games today */
 function defaultSport(): string {
   const m = new Date().getMonth(); // 0-indexed
   // Nov–Mar: college basketball season
   if (m >= 10 || m <= 2) return "NCAAMB";
+  // Oct–Jun: NBA season
+  if (m >= 9 || m <= 5) return "NBA";
   // Sep–Jan: college/pro football overlap
   if (m >= 8) return "NFL";
   return "NFL";

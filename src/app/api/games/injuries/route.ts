@@ -16,7 +16,7 @@ import type { Sport } from "@/lib/espn-api";
 
 export const dynamic = "force-dynamic";
 
-const VALID_SPORTS = ["NFL", "NCAAF", "NCAAMB"];
+const VALID_SPORTS = ["NFL", "NCAAF", "NCAAMB", "NBA"];
 
 function errorResponse(message: string, status: number) {
   return NextResponse.json({ success: false, error: message }, { status });

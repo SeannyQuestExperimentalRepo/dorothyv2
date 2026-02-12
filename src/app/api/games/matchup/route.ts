@@ -24,7 +24,7 @@ import { analyzeTrendSignificance } from "@/lib/trend-stats";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-const VALID_SPORTS = ["NFL", "NCAAF", "NCAAMB"];
+const VALID_SPORTS = ["NFL", "NCAAF", "NCAAMB", "NBA"];
 
 // ─── Team Name Canonicalization ────────────────────────────────────────────
 // The URL may carry an ESPN display name (e.g., "NC State") from the

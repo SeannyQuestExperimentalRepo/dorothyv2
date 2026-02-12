@@ -15,7 +15,7 @@ import { features } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
-const VALID_SPORTS: Sport[] = ["NFL", "NCAAF", "NCAAMB"];
+const VALID_SPORTS: Sport[] = ["NFL", "NCAAF", "NCAAMB", "NBA"];
 const VALID_BET_TYPES: BetType[] = [
   "SPREAD",
   "OVER_UNDER",
