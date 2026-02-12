@@ -44,6 +44,7 @@ data/
 
 # performance benchmark logs
 perf-results/
+backtest-results/
 
 # ML training data (generated from DB, not source)
 scripts/training-data.csv
@@ -55,3 +56,7 @@ scripts/training-data.csv
 # AI prompts / internal docs
 PROMPT.md
 RALPH_LOG.md
+ROADMAP.md
+
+# MCP / Serena
+.serena/
