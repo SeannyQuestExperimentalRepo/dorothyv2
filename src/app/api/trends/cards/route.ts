@@ -152,11 +152,16 @@ export async function POST(request: NextRequest) {
 
     const durationMs = Math.round(performance.now() - start);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: { card },
       meta: { durationMs },
     });
+    response.headers.set(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=300",
+    );
+    return response;
   } catch (err) {
     console.error("[POST /api/trends/cards] Error:", err);
     return errorResponse("Internal server error", 500);

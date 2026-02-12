@@ -34,6 +34,18 @@ export async function GET(req: NextRequest) {
       where: { userId: session.user.id },
       orderBy: { updatedAt: "desc" },
       take: 50,
+      select: {
+        id: true,
+        name: true,
+        sport: true,
+        query: true,
+        description: true,
+        isPublic: true,
+        lastTriggered: true,
+        notifyEmail: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     return NextResponse.json({ success: true, trends });

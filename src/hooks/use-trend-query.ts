@@ -78,5 +78,7 @@ export function useTrendQuery(params: TrendQueryParams | null) {
     queryKey: ["trends", params?.query || ""],
     queryFn: () => executeTrendSearch(params!.query),
     enabled: !!params?.query,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }

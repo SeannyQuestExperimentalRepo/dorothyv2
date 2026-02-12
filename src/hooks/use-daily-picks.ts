@@ -29,6 +29,8 @@ export function useDailyPicks(sport: string, date?: string) {
     queryFn: () => fetchPicks(sport, date),
     enabled: !!sport,
     staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 

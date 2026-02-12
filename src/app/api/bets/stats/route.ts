@@ -90,6 +90,15 @@ export async function GET(req: NextRequest) {
     const bets = await prisma.bet.findMany({
       where,
       orderBy: { createdAt: "asc" },
+      select: {
+        result: true,
+        profit: true,
+        stake: true,
+        sport: true,
+        betType: true,
+        gameDate: true,
+        createdAt: true,
+      },
     });
 
     // Compute stats
@@ -193,7 +202,10 @@ export async function GET(req: NextRequest) {
       cumulativePL,
     };
 
-    return NextResponse.json({ success: true, stats });
+    return NextResponse.json(
+      { success: true, stats },
+      { headers: { "Cache-Control": "private, s-maxage=300, stale-while-revalidate=600" } },
+    );
   } catch (error) {
     console.error("[GET /api/bets/stats]", error);
     return NextResponse.json(

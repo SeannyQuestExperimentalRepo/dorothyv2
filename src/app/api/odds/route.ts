@@ -41,23 +41,17 @@ export async function GET(req: NextRequest) {
 
     // Check for recent cached snapshot
     const cutoff = new Date(Date.now() - CACHE_TTL_MS);
-    const cached = await prisma.oddsSnapshot.findMany({
+    const games = await prisma.oddsSnapshot.findMany({
       where: {
         sport: sport as Sport,
         fetchedAt: { gte: cutoff },
         gameDate: { gt: now }, // Only games that haven't started
       },
       orderBy: { fetchedAt: "desc" },
+      distinct: ["externalId"],
     });
 
-    if (cached.length > 0) {
-      // Deduplicate by externalId (keep most recent)
-      const seen = new Set<string>();
-      const games = cached.filter((s) => {
-        if (seen.has(s.externalId)) return false;
-        seen.add(s.externalId);
-        return true;
-      });
+    if (games.length > 0) {
 
       return NextResponse.json({
         success: true,

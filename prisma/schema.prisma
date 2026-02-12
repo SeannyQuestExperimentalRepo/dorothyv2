@@ -590,6 +590,7 @@ model DailyPick {
   @@unique([date, sport, homeTeam, awayTeam, pickType, pickSide, playerName])
   @@index([date, sport])
   @@index([result])
+  @@index([result, gradedAt])
 }
 
 // ─── PUSH NOTIFICATIONS ─────────────────────────────────────────────────────

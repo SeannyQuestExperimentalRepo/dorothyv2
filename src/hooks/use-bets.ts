@@ -160,7 +160,8 @@ export function useBets(filters: BetFilters = {}) {
   return useQuery({
     queryKey: ["bets", filters],
     queryFn: () => fetchBets(filters),
-    staleTime: 30 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -170,7 +171,8 @@ export function useBetStats(
   return useQuery({
     queryKey: ["bet-stats", filters],
     queryFn: () => fetchBetStats(filters),
-    staleTime: 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 
