@@ -37,12 +37,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const now = new Date();
+
     // Check for recent cached snapshot
     const cutoff = new Date(Date.now() - CACHE_TTL_MS);
     const cached = await prisma.oddsSnapshot.findMany({
       where: {
         sport: sport as Sport,
         fetchedAt: { gte: cutoff },
+        gameDate: { gt: now }, // Only games that haven't started
       },
       orderBy: { fetchedAt: "desc" },
     });
@@ -93,10 +96,15 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Filter out games that have already started
+    const upcoming = snapshots.filter(
+      (s) => new Date(s.commenceTime) > now,
+    );
+
     return NextResponse.json({
       success: true,
       sport,
-      games: snapshots.map((s: GameOddsSnapshot) => ({
+      games: upcoming.map((s: GameOddsSnapshot) => ({
         gameId: s.gameId,
         homeTeam: s.homeTeam,
         awayTeam: s.awayTeam,
@@ -106,7 +114,7 @@ export async function GET(req: NextRequest) {
         bestTotal: s.bestTotal,
       })),
       cached: false,
-      count: snapshots.length,
+      count: upcoming.length,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
