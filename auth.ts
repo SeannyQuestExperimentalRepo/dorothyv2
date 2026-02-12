@@ -26,19 +26,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Admin password grants full ADMIN access
         const adminPassword = process.env.ADMIN_PASSWORD;
-        if (adminPassword && password === adminPassword) {
-          const adminUser = await prisma.user.upsert({
-            where: { email: "admin@trendline.app" },
-            update: { role: "ADMIN" },
-            create: { email: "admin@trendline.app", name: "Admin", role: "ADMIN" },
-          });
-          return {
-            id: adminUser.id,
-            email: adminUser.email,
-            name: adminUser.name,
-            image: adminUser.image,
-            role: adminUser.role,
-          };
+        if (adminPassword && password.trim() === adminPassword.trim()) {
+          try {
+            let adminUser = await prisma.user.findUnique({
+              where: { email: "admin@trendline.app" },
+            });
+            if (!adminUser) {
+              adminUser = await prisma.user.create({
+                data: { email: "admin@trendline.app", name: "Admin", role: "ADMIN" },
+              });
+            } else if (adminUser.role !== "ADMIN") {
+              adminUser = await prisma.user.update({
+                where: { id: adminUser.id },
+                data: { role: "ADMIN" },
+              });
+            }
+            return {
+              id: adminUser.id,
+              email: adminUser.email,
+              name: adminUser.name,
+              image: adminUser.image,
+              role: adminUser.role,
+            };
+          } catch (err) {
+            console.error("[auth] Admin login DB error:", err);
+            return null;
+          }
         }
 
         if (!email) return null;
