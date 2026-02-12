@@ -22,6 +22,10 @@ function TrendCard({ trend, onDelete }: { trend: SavedTrend; onDelete: () => voi
     updateMutation.mutate({ id: trend.id, notifyEmail: !trend.notifyEmail });
   };
 
+  const handleTogglePublic = () => {
+    updateMutation.mutate({ id: trend.id, isPublic: !trend.isPublic });
+  };
+
   return (
     <div className="rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/25">
       <div className="flex items-start justify-between gap-3">
@@ -46,6 +50,18 @@ function TrendCard({ trend, onDelete }: { trend: SavedTrend; onDelete: () => voi
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleTogglePublic}
+            disabled={updateMutation.isPending}
+            title={trend.isPublic ? "Visible on community page" : "Private — only you can see"}
+            className={`rounded-md border px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+              trend.isPublic
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                : "border-border/60 bg-secondary/40 text-muted-foreground hover:bg-secondary"
+            }`}
+          >
+            {trend.isPublic ? "Public" : "Private"}
+          </button>
           <button
             onClick={handleToggleEmail}
             disabled={updateMutation.isPending}

@@ -324,12 +324,14 @@ model SavedTrend {
   lastResult      Json?    // Latest trigger result snapshot
   lastTriggered   DateTime?
   notifyEmail     Boolean  @default(false)
+  isPublic        Boolean  @default(false) // Visible on community leaderboard
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   user            User     @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@index([sport])
+  @@index([isPublic])
 }
 
 // ─── AUTH (NextAuth.js v5) ──────────────────────────────────────────────────
@@ -341,8 +343,9 @@ model User {
   image              String?
   password           String?
   role               UserRole  @default(FREE)
-  subscriptionId     String?
-  subscriptionStatus String?
+  stripeCustomerId   String?   @unique // Stripe customer ID for billing
+  subscriptionId     String?   // Stripe subscription ID
+  subscriptionStatus String?   // "active", "canceled", "past_due", etc.
   emailVerified      DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt

@@ -12,6 +12,7 @@ const navItems = [
   { name: "Odds", href: "/odds" },
   { name: "Parlays", href: "/parlays" },
   { name: "Bets", href: "/bets" },
+  { name: "Community", href: "/community" },
 ];
 
 export function Header() {

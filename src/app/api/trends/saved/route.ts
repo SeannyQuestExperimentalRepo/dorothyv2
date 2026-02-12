@@ -139,7 +139,7 @@ export async function PATCH(req: NextRequest) {
     const limited = applyRateLimit(req, authLimiter, session.user.id);
     if (limited) return limited;
 
-    const body = (await req.json()) as { id: number; notifyEmail?: boolean };
+    const body = (await req.json()) as { id: number; notifyEmail?: boolean; isPublic?: boolean };
 
     if (!body.id) {
       return NextResponse.json(
@@ -163,6 +163,9 @@ export async function PATCH(req: NextRequest) {
     const updateData: Record<string, unknown> = {};
     if (body.notifyEmail !== undefined) {
       updateData.notifyEmail = body.notifyEmail;
+    }
+    if (body.isPublic !== undefined) {
+      updateData.isPublic = body.isPublic;
     }
 
     const updated = await prisma.savedTrend.update({

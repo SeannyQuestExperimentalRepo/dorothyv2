@@ -9,6 +9,7 @@ export interface SavedTrend {
   lastResult: unknown;
   lastTriggered: string | null;
   notifyEmail: boolean;
+  isPublic: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -70,7 +71,7 @@ export function useDeleteSavedTrend() {
   });
 }
 
-async function updateSavedTrend(input: { id: number; notifyEmail: boolean }): Promise<SavedTrend> {
+async function updateSavedTrend(input: { id: number; notifyEmail?: boolean; isPublic?: boolean }): Promise<SavedTrend> {
   const res = await fetch("/api/trends/saved", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
