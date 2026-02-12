@@ -1874,10 +1874,15 @@ export async function generateDailyPicks(
   dateStr: string,
   sport: Sport,
 ): Promise<GeneratedPick[]> {
-  const dateStart = new Date(dateStr + "T00:00:00Z");
-  const dateEnd = new Date(dateStr + "T23:59:59Z");
+  // Use ET boundaries so the game window matches the US sports calendar.
+  // ET midnight = 05:00 UTC (EST). Without this, yesterday's 7 PM+ ET games
+  // bleed in because they cross UTC midnight.
+  const dateStart = new Date(dateStr + "T05:00:00Z"); // midnight ET (EST)
+  const nextDay = new Date(dateStart);
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+  const dateEnd = new Date(nextDay.getTime() - 1); // 04:59:59.999 UTC next day
 
-  // Include all games for the requested date (even if some have tipped off)
+  // Include all games for the requested ET date (even if some have tipped off)
   const upcomingGames = await prisma.upcomingGame.findMany({
     where: {
       sport,

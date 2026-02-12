@@ -59,6 +59,8 @@ export async function GET(req: NextRequest) {
     }
 
     const dateKey = new Date(date + "T00:00:00Z");
+    // ET midnight for game queries (05:00 UTC = midnight EST)
+    const dateStartET = new Date(date + "T05:00:00Z");
 
     // Check if picks already exist in DB for this date (all games, not just upcoming)
     const allPicks = await prisma.dailyPick.findMany({
@@ -77,7 +79,7 @@ export async function GET(req: NextRequest) {
       // Check how many games exist — if too many, skip inline generation
       // (the daily cron pre-generates picks instead)
       const gameCount = await prisma.upcomingGame.count({
-        where: { sport: sport as Sport, gameDate: { gte: dateKey } },
+        where: { sport: sport as Sport, gameDate: { gte: dateStartET } },
       });
 
       if (gameCount > 10) {
@@ -137,7 +139,7 @@ export async function GET(req: NextRequest) {
 
     // Enrich picks with team rankings from UpcomingGame table
     const upcomingGames = await prisma.upcomingGame.findMany({
-      where: { sport: sport as Sport, gameDate: { gte: dateKey } },
+      where: { sport: sport as Sport, gameDate: { gte: dateStartET } },
       select: { homeTeam: true, awayTeam: true, homeRank: true, awayRank: true },
     });
     const rankMap = new Map(
