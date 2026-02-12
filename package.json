@@ -13,6 +13,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
     "@prisma/client": "^6.19.2",
+    "@sentry/nextjs": "^10.38.0",
     "@tanstack/react-query": "^5.90.20",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.1.0",
@@ -24,9 +25,11 @@
     "openai": "^6.18.0",
     "react": "^18",
     "react-dom": "^18",
+    "recharts": "^3.7.0",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
+    "web-push": "^3.6.7",
     "zod": "^4.3.6"
   },
   "prisma": {
@@ -37,6 +40,7 @@
     "@types/node": "^20.19.33",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/web-push": "^3.6.4",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "eslint-config-prettier": "^10.1.8",

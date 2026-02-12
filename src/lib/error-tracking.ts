@@ -1,7 +1,9 @@
 /**
- * Lightweight error tracking with structured logging.
- * Prepares for Sentry integration later — for now, structured console output.
+ * Lightweight error tracking with structured logging + Sentry integration.
+ * Routes errors to Sentry when configured, always logs to console.
  */
+
+import * as Sentry from "@sentry/nextjs";
 
 interface ErrorContext {
   route?: string;
@@ -19,11 +21,12 @@ interface TimingContext {
 }
 
 /**
- * Log an error with structured context.
+ * Log an error with structured context. Routes to Sentry if configured.
  */
 export function trackError(error: unknown, context: ErrorContext = {}): void {
   const err = error instanceof Error ? error : new Error(String(error));
 
+  // Always log structured output
   console.error(
     JSON.stringify({
       level: "error",
@@ -33,10 +36,20 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
       timestamp: new Date().toISOString(),
     }),
   );
+
+  // Send to Sentry with context tags
+  Sentry.captureException(err, {
+    tags: {
+      route: context.route,
+      sport: context.sport,
+      action: context.action,
+    },
+    extra: context,
+  });
 }
 
 /**
- * Log a warning with structured context.
+ * Log a warning with structured context. Routes to Sentry if configured.
  */
 export function trackWarning(message: string, context: ErrorContext = {}): void {
   console.warn(
@@ -47,6 +60,17 @@ export function trackWarning(message: string, context: ErrorContext = {}): void 
       timestamp: new Date().toISOString(),
     }),
   );
+
+  // Send to Sentry as a message at warning level
+  Sentry.captureMessage(message, {
+    level: "warning",
+    tags: {
+      route: context.route,
+      sport: context.sport,
+      action: context.action,
+    },
+    extra: context,
+  });
 }
 
 /**
@@ -66,6 +90,19 @@ export function trackTiming(context: TimingContext): void {
       }),
     );
   }
+}
+
+/**
+ * Track a custom metric via Sentry.
+ * Uses Sentry's metrics API for dashboards and alerting.
+ */
+export function trackMetric(
+  name: string,
+  value: number,
+  unit: "none" | "second" | "millisecond" = "none",
+  attributes?: Record<string, string>,
+): void {
+  Sentry.metrics.gauge(name, value, { unit, attributes });
 }
 
 /**

@@ -241,6 +241,8 @@ model NCAAMBGame {
   // Betting
   spread           Float?        // Negative = home favored
   overUnder        Float?
+  moneylineHome    Int?          // e.g., -150
+  moneylineAway    Int?          // e.g., +130
   spreadResult     SpreadResult?
   ouResult         OUResult?
   overtimes        Int           @default(0)
@@ -281,6 +283,9 @@ model UpcomingGame {
   forecastWindMph  Float?
   forecastCategory WeatherCategory?
   forecastUpdated  DateTime?
+  fmHomePred       Float?           // FanMatch predicted home score
+  fmAwayPred       Float?           // FanMatch predicted away score
+  fmHomeWinProb    Float?           // FanMatch home win probability (0-1)
   lastUpdated      DateTime         @updatedAt
 
   @@unique([sport, gameDate, homeTeam, awayTeam])
@@ -304,6 +309,7 @@ model OddsSnapshot {
   @@unique([externalId, fetchedAt])
   @@index([sport, gameDate])
   @@index([homeTeam, awayTeam, gameDate])
+  @@index([sport, homeTeam, awayTeam, fetchedAt])
 }
 
 // ─── SAVED TRENDS ───────────────────────────────────────────────────────────
@@ -345,6 +351,7 @@ model User {
   searches           SearchLog[]
   bets               Bet[]
   savedTrends        SavedTrend[]
+  pushSubscriptions  PushSubscription[]
 }
 
 model Account {
@@ -517,4 +524,18 @@ model DailyPick {
   @@unique([date, sport, homeTeam, awayTeam, pickType, pickSide, playerName])
   @@index([date, sport])
   @@index([result])
+}
+
+// ─── PUSH NOTIFICATIONS ─────────────────────────────────────────────────────
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String   // Public key
+  auth      String   // Auth secret
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

@@ -224,22 +224,31 @@ export async function syncCompletedGames(
       sport,
       gameDate: { gte: rangeStart, lte: rangeEnd },
     },
-    select: { homeTeam: true, awayTeam: true, gameDate: true, spread: true, overUnder: true },
+    select: { homeTeam: true, awayTeam: true, gameDate: true, spread: true, overUnder: true, moneylineHome: true, moneylineAway: true, fmHomePred: true, fmAwayPred: true, fmHomeWinProb: true },
   });
 
   // Index upcoming records for fast lookup
-  const oddsMap = new Map<string, { spread: number | null; overUnder: number | null }>();
+  const oddsMap = new Map<string, {
+    spread: number | null; overUnder: number | null;
+    moneylineHome: number | null; moneylineAway: number | null;
+    fmHomePred: number | null; fmAwayPred: number | null; fmHomeWinProb: number | null;
+  }>();
   for (const u of upcomingRecords) {
+    const entry = {
+      spread: u.spread, overUnder: u.overUnder,
+      moneylineHome: u.moneylineHome, moneylineAway: u.moneylineAway,
+      fmHomePred: u.fmHomePred, fmAwayPred: u.fmAwayPred, fmHomeWinProb: u.fmHomeWinProb,
+    };
     // Key by home+away+date (date normalized to YYYY-MM-DD)
     const dateKey = u.gameDate.toISOString().split("T")[0];
-    oddsMap.set(`${u.homeTeam}|${u.awayTeam}|${dateKey}`, { spread: u.spread, overUnder: u.overUnder });
+    oddsMap.set(`${u.homeTeam}|${u.awayTeam}|${dateKey}`, entry);
     // Also store with ±1 day for timezone tolerance
     const dayBefore = new Date(u.gameDate);
     dayBefore.setDate(dayBefore.getDate() - 1);
     const dayAfter = new Date(u.gameDate);
     dayAfter.setDate(dayAfter.getDate() + 1);
-    oddsMap.set(`${u.homeTeam}|${u.awayTeam}|${dayBefore.toISOString().split("T")[0]}`, { spread: u.spread, overUnder: u.overUnder });
-    oddsMap.set(`${u.homeTeam}|${u.awayTeam}|${dayAfter.toISOString().split("T")[0]}`, { spread: u.spread, overUnder: u.overUnder });
+    oddsMap.set(`${u.homeTeam}|${u.awayTeam}|${dayBefore.toISOString().split("T")[0]}`, entry);
+    oddsMap.set(`${u.homeTeam}|${u.awayTeam}|${dayAfter.toISOString().split("T")[0]}`, entry);
   }
 
   // Phase 3: Batch find existing games (one query per sport)
@@ -359,6 +368,11 @@ export async function syncCompletedGames(
           awayRank: g.awayRank,
           spread,
           overUnder,
+          moneylineHome: odds?.moneylineHome ?? null,
+          moneylineAway: odds?.moneylineAway ?? null,
+          fmHomePred: odds?.fmHomePred ?? null,
+          fmAwayPred: odds?.fmAwayPred ?? null,
+          fmHomeWinProb: odds?.fmHomeWinProb ?? null,
           spreadResult: calculateSpreadResult(g.homeScore, g.awayScore, spread),
           ouResult: calculateOUResult(g.homeScore, g.awayScore, overUnder),
         };

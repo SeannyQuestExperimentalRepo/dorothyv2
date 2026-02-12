@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { OddsComparison } from "@/components/odds/odds-comparison";
+
+const SignificantMovesCard = dynamic(
+  () => import("@/components/significant-moves-card").then((m) => m.SignificantMovesCard),
+  { ssr: false }
+);
 
 const SPORTS = ["NFL", "NCAAF", "NCAAMB"] as const;
 
@@ -34,7 +40,11 @@ export default function OddsPage() {
         </div>
       </div>
 
-      <OddsComparison sport={sport} />
+      <SignificantMovesCard sport={sport} />
+
+      <div className="mt-6">
+        <OddsComparison sport={sport} />
+      </div>
     </div>
   );
 }

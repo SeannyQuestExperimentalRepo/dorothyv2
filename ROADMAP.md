@@ -1,6 +1,6 @@
 # TrendLine — Development Roadmap
 
-*Last updated: Feb 12, 2026*
+*Last updated: Feb 11, 2026*
 
 ## Current State
 
@@ -25,11 +25,14 @@ TrendLine is a sports betting analytics platform with **154K+ games** across NFL
 - **Auth** — NextAuth v5 with Google + credentials, JWT sessions, role-based access (FREE/PREMIUM/ADMIN)
 - **Tier limits** — Feature gating by user role (pick confidence, bet tracking, props, odds access)
 - **Pricing page** — FREE vs Premium ($19/mo, $149/yr) with feature comparison
+- **Sentry error monitoring** — `@sentry/nextjs` with client/server/edge configs, global error boundary, cron monitor with check-ins, custom metrics (`cron.games_synced`, `cron.picks_generated`, `cron.duration_ms`), user context in middleware, performance spans
+- **Line movement dashboard** — Dual-axis Recharts chart (spread + total over time) on matchup pages, significant move detection (spread >1pt, total >2pt), significant moves API + card on odds page
+- **Mobile PWA** — `manifest.json`, service worker (cache-first static, network-first pages), offline banner, installable from mobile browser, iOS safe-area-inset support
+- **Push notifications** — VAPID web push via `web-push`, subscribe/send API routes, service worker push handler, opt-in prompt, PushSubscription model, triggered after daily pick generation
+- **Pick Engine backtesting** — v5 vs v6 comparison script, configurable thresholds, sensitivity analysis (HCA, AdjOE, ML edge), FanMatch + moneyline data pipeline from UpcomingGame → NCAAMBGame
 
 ### Partially Built
 - **Subscriptions** — Tiers defined and enforced in code, but Stripe not connected (no payment flow)
-- **Error monitoring** — Structured logging utility ready, Sentry not connected
-- **Line movement** — OddsSnapshot table captures multi-book odds, but no movement analysis UI or alerts
 
 ---
 
@@ -57,16 +60,52 @@ TrendLine is a sports betting analytics platform with **154K+ games** across NFL
 - **Parlay analysis** — True joint probability and Kelly sizing — no competitor does this well
 
 ### Where TrendLine Still Loses
-- **No line movement tracking** — Infrastructure exists but no UI or alerts
 - **No sharp/public splits** — Requires data partnership or scraping
-- **No mobile app** — 84% of bettors use mobile
 - **No community** — No forums, leaderboards, or social sharing
-- **No email alerts** — Saved trend evaluation runs but notifications aren't sent
+- **No email alerts** — Saved trend evaluation runs but email notifications aren't sent (push notifications are live)
 - **No payment processing** — Can't collect revenue without Stripe
 
 ---
 
 ## Recently Completed
+
+### Sentry Error Monitoring — Full Stack (Feb 2026)
+- `@sentry/nextjs` with client, server, and edge runtime configs
+- Global error boundary (`global-error.tsx`) with Sentry reporting
+- `trackError()` and `trackWarning()` wired to Sentry with structured tags (sport, route, userId)
+- `trackMetric()` for custom gauge metrics
+- Sentry Cron Monitor on daily-sync with check-ins (in_progress → ok/error)
+- Custom metrics: `cron.games_synced`, `cron.picks_generated`, `cron.duration_ms`
+- User context (`Sentry.setUser`) set in middleware from session
+- Performance spans on key API routes
+- Source maps uploaded during build, hidden from client
+
+### Line Movement Dashboard (Feb 2026)
+- `GET /api/odds/snapshots` endpoint for snapshot history by game
+- `GET /api/odds/significant-moves` endpoint detecting moves above threshold
+- `detectSignificantMoves()` engine: spread >1pt significant, >2pt major; total >2pt significant, >3.5pt major
+- Dual-axis Recharts chart (spread + total) on matchup pages with opening line markers
+- Significant Moves card on odds page with move severity badges
+- React Query hooks for both endpoints
+
+### Mobile PWA (Feb 2026)
+- `manifest.json` with TrendLine branding (teal #14b8a6 on obsidian #0a0a0f)
+- Service worker: cache-first for static assets, network-first for pages, skips API routes
+- Offline banner component with `navigator.onLine` detection
+- Service worker update detection with refresh prompt
+- iOS safe-area-inset CSS support for standalone mode
+- Push notifications: VAPID web push, subscribe/send API routes, SW push handler, opt-in prompt
+- `PushSubscription` Prisma model with user relation
+- Cron triggers push after daily pick generation, stale subscription cleanup
+
+### Pick Engine v6 Backtesting (Feb 2026)
+- `backtest-v6-compare.ts`: v5 vs v6 comparison with side-by-side output
+- Configurable thresholds: HCA (conf/non-conf/Nov/Mar), AdjOE (over/under), ML edge
+- Sensitivity analysis mode (`--sensitivity`): 11 configs across HCA, AdjOE, and ML edge dimensions
+- `computeKenpomWP()`: logistic model from AdjEM → win probability
+- `signalMoneylineEdge()`: market-implied WP vs KenPom WP divergence
+- FanMatch + moneyline data pipeline: cron captures → UpcomingGame → NCAAMBGame via extended oddsMap
+- `moneylineHome`/`moneylineAway` fields added to NCAAMBGame schema
 
 ### The Odds API Integration (Feb 2026)
 - Integrated The Odds API into the daily cron pipeline (steps 1.5 and 2.5)
@@ -102,33 +141,7 @@ The single most important remaining item. Everything else is built — this is t
 - Add `stripeCustomerId` to User model
 **Impact:** Revenue generation. Literally the only thing between $0 and recurring revenue.
 
-### Priority 2: Pick Engine v6 Backtesting
-
-The v6 changes introduced 5 new signals/modifiers without backtesting against historical data. Need to validate they actually improve accuracy before the season ends.
-
-**Work needed:**
-- Run v6 pick generation against 2025-26 completed games (with FanMatch data from NCAAMBGame table)
-- Compare v5 vs v6 win rates for 4★ and 5★ picks (spread and O/U separately)
-- Evaluate moneyline market edge signal accuracy (does divergence predict spread covering?)
-- Evaluate FanMatch margin vs AdjEM+HCA spread accuracy
-- Tune FanMatch O/U modifier thresholds (currently ±1 mag, ±0.05 conf)
-- Tune moneyline edge thresholds (currently 8% and 15%)
-- Document results and adjust weights if needed
-**Impact:** Ensures the new signals are additive, not noise. Could improve or degrade pick accuracy.
-
-### Priority 3: Line Movement Dashboard
-
-OddsSnapshot data is already being captured. Need to surface it.
-
-**Work needed:**
-- Query OddsSnapshot history for a game (group by fetchedAt)
-- Build sparkline chart component (spread over time)
-- Show opening vs. current line on matchup pages
-- Detect significant line moves (>1 point shift)
-- Optional: line movement alerts (email/push when line crosses a threshold)
-**Impact:** Professional-grade feature that justifies premium pricing.
-
-### Priority 4: Email Notifications for Saved Trends
+### Priority 2: Email Notifications for Saved Trends
 
 The cron already evaluates saved trends daily. Just need to send emails when they trigger.
 
@@ -139,25 +152,26 @@ The cron already evaluates saved trends daily. Just need to send emails when the
 - Email template: "Your trend 'Chiefs ATS home favorites' is active today — Chiefs -7 vs Bills"
 **Impact:** Massive retention. The app reaches out to users instead of waiting for them.
 
-### Priority 5: Sentry Error Monitoring
+### Priority 3: Run Backtest & Tune Thresholds
 
-Structured logging is in place but errors go to console only.
-
-**Work needed:**
-- Install `@sentry/nextjs`
-- Configure Sentry DSN
-- Wire existing `trackError()` calls to Sentry
-- Add source maps upload to build process
-**Impact:** Visibility into production errors before users report them.
-
-### Priority 6: Mobile PWA
+Backtesting infrastructure is built. Need to actually execute against historical data and apply findings.
 
 **Work needed:**
-- Add web app manifest (`manifest.json`)
-- Add service worker for offline support
-- Mobile-optimize key pages (Today's Sheet, bet tracker, trend search)
-- Add "install app" prompt
-**Impact:** Unlocks mobile users with minimal effort (no App Store).
+- Run `npx tsx scripts/backtest-v6-compare.ts --sensitivity` against 2025-26 completed games
+- Analyze v5 vs v6 comparison results across confidence tiers
+- Apply optimal thresholds to `pick-engine.ts` if backtesting suggests changes
+- Document results
+**Impact:** Validates or improves v6 signal accuracy before season ends.
+
+---
+
+## Must Do Before V1 Launch
+
+| Item | Why | How |
+|------|-----|-----|
+| **Prisma migration baseline** | DB has been managed with `prisma db push` (no migration history). Any future team member or CI/CD pipeline running `prisma migrate deploy` will fail with drift errors. | Run `prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/migrations/0_init/migration.sql`, then `prisma migrate resolve --applied 0_init` to mark it as already applied. From that point forward, use `prisma migrate dev` for all schema changes. |
+| **Stripe integration** | Can't collect revenue without payment processing (Priority 1 above). | See Priority 1 work items. |
+| **E2E test suite** | No automated tests for critical user flows (search, picks, bet tracking, auth). | Add Playwright tests for the top 5 user journeys. |
 
 ---
 
@@ -207,7 +221,7 @@ Structured logging is in place but errors go to console only.
 | Issue | Priority | Status |
 |-------|----------|--------|
 | Rate limiting on API routes | High | **DONE** — 4 tiered limiters |
-| Error monitoring | High | Structured logging done, Sentry not connected |
+| Error monitoring | High | **DONE** — Sentry full stack with cron monitor, metrics, user context |
 | `force-dynamic` on matchup route | Low | **DONE** — Cache-Control added |
 | Sequential DB queries | Low | **DONE** — Promise.all |
 | All-sport cache loading | Low | **DONE** — Sport-specific |
@@ -215,8 +229,9 @@ Structured logging is in place but errors go to console only.
 | `openai` dependency for NLP | Medium | Consider local model to reduce cost |
 | No E2E tests | Medium | Add Playwright tests for critical flows |
 | Pick generation timeout on large slates | Low | **DONE** — Pre-generated via cron |
-| Pick Engine v6 not backtested | High | New signals (FanMatch, ML edge, AdjOE) need historical validation |
-| FanMatch data only available for current day | Medium | Historical FanMatch not stored — can't backtest FanMatch margin signal |
+| Pick Engine v6 not backtested | High | **DONE** — Backtest infrastructure built with sensitivity analysis; needs execution |
+| FanMatch data only available for current day | Medium | **DONE** — Cron now captures FanMatch + moneyline daily; pipeline persists to NCAAMBGame |
+| Prisma migration history | High | No migration history — using `db push`. Must baseline before V1 launch. |
 
 ---
 

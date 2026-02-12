@@ -27,6 +27,10 @@ const InjuriesPanel = dynamic(
   () => import("@/components/matchup/injuries-panel").then((m) => m.InjuriesPanel),
   { ssr: false }
 );
+const LineMovementChart = dynamic(
+  () => import("@/components/matchup/line-movement-chart").then((m) => m.LineMovementChart),
+  { ssr: false }
+);
 
 interface MatchupData {
   upcoming: {
@@ -220,6 +224,9 @@ export default function GameMatchupPage() {
           moneylineHome={data.upcoming?.moneylineHome ?? null}
           moneylineAway={data.upcoming?.moneylineAway ?? null}
         />
+
+        {/* Line Movement */}
+        <LineMovementChart sport={sport} homeTeam={homeTeam} awayTeam={awayTeam} />
 
         {/* Injury Report */}
         <InjuriesPanel

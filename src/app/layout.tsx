@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import dynamic from "next/dynamic";
@@ -10,6 +10,18 @@ const UpcomingGamesSidebar = dynamic(
   () => import("@/components/sidebar/upcoming-games-sidebar"),
   { ssr: false }
 );
+const ServiceWorkerRegistration = dynamic(
+  () => import("@/components/service-worker-registration").then((m) => m.ServiceWorkerRegistration),
+  { ssr: false }
+);
+const OfflineBanner = dynamic(
+  () => import("@/components/offline-banner").then((m) => m.OfflineBanner),
+  { ssr: false }
+);
+const NotificationPrompt = dynamic(
+  () => import("@/components/notification-prompt").then((m) => m.NotificationPrompt),
+  { ssr: false }
+);
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 const jetbrainsMono = JetBrains_Mono({
@@ -17,10 +29,26 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#14b8a6",
+};
+
 export const metadata: Metadata = {
   title: "TrendLine — Sports Betting Trends Engine",
   description:
     "Search historical ATS trends across NFL, NCAAF, and NCAA Men's Basketball with natural language queries.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "TrendLine",
+  },
+  icons: {
+    apple: "/icons/icon-192.svg",
+  },
 };
 
 export default function RootLayout({
@@ -35,6 +63,7 @@ export default function RootLayout({
       >
         <Providers>
           <div className="flex min-h-screen flex-col">
+            <OfflineBanner />
             <Header />
             <main className="flex-1">
               <div className="mx-auto flex max-w-7xl gap-6 px-4">
@@ -46,6 +75,8 @@ export default function RootLayout({
             </main>
             <Footer />
           </div>
+          <ServiceWorkerRegistration />
+          <NotificationPrompt />
         </Providers>
       </body>
     </html>
