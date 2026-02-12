@@ -29,12 +29,14 @@ export async function GET(req: NextRequest) {
 
   try {
     // Look at snapshots from the last 3 days (covers games with multiple captures)
+    const now = new Date();
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
     const snapshots = await prisma.oddsSnapshot.findMany({
       where: {
         sport: sport as Sport,
         fetchedAt: { gte: threeDaysAgo },
+        gameDate: { gt: now }, // Only games that haven't started
       },
       select: {
         homeTeam: true,

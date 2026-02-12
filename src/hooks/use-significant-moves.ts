@@ -19,7 +19,7 @@ export function useSignificantMoves(sport: string) {
   return useQuery({
     queryKey: ["significant-moves", sport],
     queryFn: () => fetchSignificantMoves(sport),
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes — games drop off as they start
     enabled: !!sport,
   });
 }
