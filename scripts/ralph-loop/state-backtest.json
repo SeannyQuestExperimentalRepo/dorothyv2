@@ -1,0 +1,42 @@
+{
+  "branch": "experimental/ncaamb-backtest-20260212",
+  "started_at": "2026-02-12T00:00:00Z",
+  "current_phase": 1,
+  "current_iteration": 1,
+  "data_coverage": {
+    "season_2025_kenpom_pct": 100.0,
+    "season_2026_kenpom_pct": 98.6,
+    "season_2025_fanmatch_pct": 96.4,
+    "season_2026_fanmatch_pct": 2.7,
+    "total_games_2025": 5523,
+    "total_games_2026": 1781
+  },
+  "baselines": {
+    "random": 50.0,
+    "always_under_2025": 49.5,
+    "always_under_2026": 51.9,
+    "always_home_covers_2025": 47.7,
+    "always_home_covers_2026": 48.1,
+    "v7_ou_2025": 69.6,
+    "v7_ou_2026": 52.2,
+    "v7_spread_2025": 56.0,
+    "v7_spread_2026": 54.3
+  },
+  "experiments": [],
+  "best_model": {
+    "name": null,
+    "ou_accuracy_2025": null,
+    "ou_accuracy_2026": null,
+    "spread_accuracy_2025": null,
+    "spread_accuracy_2026": null,
+    "overfitting_gap_ou": null,
+    "overfitting_gap_spread": null
+  },
+  "phase_1_findings": [],
+  "decisions_needed": [],
+  "lessons_learned": [
+    "FanMatch data is unavailable for 2026 (2.7% coverage) — any model using fmTotal is training on signal but testing on zeros",
+    "Moneyline data is 0% for 2025 — ML edge signal unverifiable",
+    "Data quality is perfect — no cleanup needed"
+  ]
+}
