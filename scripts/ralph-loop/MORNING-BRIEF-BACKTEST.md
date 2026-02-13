@@ -107,10 +107,48 @@ Spread was investigated but no clear improvement found:
 
 ---
 
+## 604-Iteration Automated Search (Phase 5)
+
+After deploying v8, ran 604 model variants across 5 automated batches. Key upgrade opportunity:
+
+### v8.1 Candidate: Hybrid U2/O5+lowline
+
+| Metric | v8 (current) | v8.1 Hybrid |
+|--------|-------------|-------------|
+| UNDER picks | all games, e≥1.5 | all games, e≥2.0 |
+| OVER picks | all games, e≥1.5 | only line<140, e≥5.0 |
+| 2026 accuracy | 63.3% | 70.7% |
+| 2026 ROI | +23.0% | +38.4% |
+| Picks/season | ~1,383 | ~525 |
+| Sharpe ratio | 0.227 | 0.401 |
+| Max drawdown | 18.1 units | 5.6 units |
+| Max loss streak | 8 | 5 |
+
+**Trade-off:** ~60% fewer picks for ~77% better accuracy and ~67% better ROI. Sharpe nearly doubles.
+
+### Top Finding: UNDER >> OVER at every edge magnitude
+
+| Edge | UNDER 2026 | OVER 2026 |
+|------|-----------|----------|
+| 1.5–2.5 | 62.9% | 47.3% |
+| 5.0–7.0 | 68.3% | 62.3% |
+| 10.0+ | 87.8% | 79.2% |
+
+### What didn't work (604 iterations of evidence)
+- Feature engineering (0/172 variants improved on Core-3)
+- Line-as-feature (50.8% OOS with Ridge — catastrophic)
+- Separate OVER/UNDER models (49%–53%)
+- Ensemble voting (too correlated to help)
+- Contextual overrides (all coin-flip OOS)
+
+Full details: [ITERATION-FINDINGS.md](../backtest/ITERATION-FINDINGS.md)
+
+---
+
 ## Recommended Next Steps
 
-1. **Merge to main** — v8 is production-ready; all validation gates passed
-2. **Monitor March Madness** — First real OOS test of v8 without March UNDER override
+1. **Decision: v8 or v8.1?** — v8 is deployed and safe; v8.1 (Hybrid) is higher quality but fewer picks
+2. **Monitor March Madness** — First real OOS test; v8.1's low-line filter may reduce March volume
 3. **KenPom point-in-time** — If available, retrain with temporal features for spread model
 4. **FanMatch 2026** — Investigate why FanMatch capture rate dropped to 2.7%
 5. **Retrain annually** — Refit Ridge on [2025+2026] data before 2026-27 season
@@ -130,5 +168,11 @@ Spread was investigated but no clear improvement found:
 | `scripts/backtest/phase2-lookahead-check.ts` | Bias detection |
 | `scripts/backtest/phase3-validation.ts` | Full validation suite |
 | `scripts/backtest/phase4-ab-comparison.ts` | v7 vs v8 head-to-head |
+| `scripts/backtest/iteration-engine.ts` | Batch 1: 172 variants |
+| `scripts/backtest/iteration-batch2.ts` | Batch 2: 81 variants |
+| `scripts/backtest/iteration-batch3.ts` | Batch 3: 49 variants |
+| `scripts/backtest/iteration-batch4.ts` | Batch 4: 183 variants |
+| `scripts/backtest/iteration-batch5.ts` | Batch 5: 119 variants |
+| `scripts/backtest/ITERATION-FINDINGS.md` | Comprehensive findings |
 | `scripts/ralph-loop/RALPH-LOG-BACKTEST.md` | Full experiment log |
 | `scripts/ralph-loop/state-backtest.json` | Session state tracking |

@@ -221,3 +221,66 @@ Overrides most damaging on highest-edge picks (10+: 74.8% vs 82.3%).
 
 ---
 
+## Phase 5: 604-Iteration Automated Search
+
+### Batch 1 — Feature Engineering & Regularization (172 variants)
+**Experiment**: 50+ features, interaction terms, quadratic, alternative feature sets, regularization sweep, edge thresholds
+**Result**: Feature engineering adds NOTHING over Core-3 (sumAdjDE, sumAdjOE, avgTempo). Edge threshold is the only lever. v8 base grade: 68.4. Only 1/172 passes strict gates (edge>=7: 73.3%, 4.8pp gap).
+
+### Batch 2 — Advanced Strategies (81 variants)
+**Experiment**: Tiered edges, weighted training, 2-stage filters, adaptive edges, ensembles, residual correction, calibration
+**Key discoveries**:
+- **Subgroup filters dominate**: Line<140: 72.2% OOS (-5.6pp gap), Tempo≤66: 70.3% (0pp gap)
+- **Edge asymmetry**: UNDER at 1.5-3 edge = 57.9% win rate, OVER at 1.5-3 = 50.5%
+- Weighted training, ensembles, residual correction: marginal or no improvement
+
+### Batch 3 — Direction Asymmetry Deep Dive (49 variants)
+**Experiment**: Asymmetric edge thresholds, subgroup routing, separate OVER/UNDER models, cross-validation
+**Key discoveries**:
+- UNDER-only e>=2: 70.2% OOS (3.0pp gap, grade 77.3)
+- Separate OVER/UNDER trained models: catastrophic failure (49-53%)
+- Meta-routing adds complexity without improvement
+
+### Batch 4 — Combining Best Strategies (183 variants)
+**Experiment**: UNDER+subgroup combos, OVER rescue (different lambdas/features), ensemble voting, asymmetric+subgroup, expanding window, hybrid, line-as-feature
+**Key discoveries**:
+- **Asym U1/O5 + Low-line (<145): 71.1%, -0.6pp gap (grade 86.5)** — best overall grade
+- Line-as-feature with Ridge: 50.8% OOS (catastrophic!)
+- OVER λ=10000 e>=7: 71.5% (partial rescue, 277 picks)
+- Expanding window retraining: +1pp marginal
+- 74/183 beat v8 baseline
+
+### Batch 5 — Final Validation (119 variants)
+**Experiment**: LOMO cross-validation, fine-grained edge/boundary sweeps, bootstrap CI, Sharpe ratio, production config matrix
+**Key discoveries**:
+- LOMO-CV confirms UNDER e>=2 + slow≤67: 74.8% CV, 75.7% OOS
+- Bootstrap 95% CI: [70.1%, 81.5%] for best strategy (n=214)
+- **Sharpe-optimal: Hybrid U2/O5+lowline** (0.401 Sharpe, 525 picks, 5.6 unit max drawdown)
+- Negative gap explained: low-line UNDER base rate shifted +7pp in 2026
+- Slow-tempo edge is genuine (base rate shifted opposite direction)
+
+### Cross-Batch Summary
+
+**What works:**
+1. UNDER predictions >> OVER at every edge magnitude
+2. Subgroup filters (low-line, slow-tempo) > feature engineering
+3. Ridge λ=1000 > other regularization values
+4. Asymmetric edges (lower bar for UNDER, higher for OVER)
+
+**What doesn't work:**
+1. Feature engineering (interactions, quadratic, normalization)
+2. Line-as-feature (catastrophic with regularization)
+3. Separate OVER/UNDER models
+4. Ensemble voting (too correlated)
+5. Complex routing/meta-strategies
+6. Contextual overrides
+
+**Production recommendation:** Hybrid U2/O5+lowline
+- UNDER picks: all games, edge ≥ 2.0
+- OVER picks: only line < 140, edge ≥ 5.0
+- 70.7% accuracy, +38.4% ROI, ~525 picks/season, Sharpe 0.401
+
+Full details: [ITERATION-FINDINGS.md](../backtest/ITERATION-FINDINGS.md)
+
+---
+
