@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { generateDailyPicks } from "@/lib/pick-engine";
+import { verifyCronSecret } from "@/lib/auth-helpers";
 import type { Sport } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -20,16 +21,8 @@ function todayET(): string {
 }
 
 export async function POST(req: NextRequest) {
-  // Require CRON_SECRET (fail-closed: reject if not configured)
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    return NextResponse.json(
-      { success: false, error: "CRON_SECRET not configured" },
-      { status: 500 },
-    );
-  }
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  // Verify cron secret (timing-safe, fail-closed)
+  if (!verifyCronSecret(req.headers.get("authorization"))) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 },

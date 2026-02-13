@@ -26,6 +26,7 @@ import { syncCompletedGames, refreshUpcomingGames } from "@/lib/espn-sync";
 import { clearGameCache } from "@/lib/trend-engine";
 import { clearAnglesCache } from "@/lib/reverse-lookup-engine";
 import { clearKenpomCache } from "@/lib/kenpom";
+import { verifyCronSecret } from "@/lib/auth-helpers";
 import type { Sport } from "@/lib/espn-api";
 
 export const dynamic = "force-dynamic";
@@ -34,16 +35,8 @@ export const maxDuration = 300;
 const SPORTS: Sport[] = ["NFL", "NCAAF", "NCAAMB"];
 
 export async function POST(request: NextRequest) {
-  // Verify cron secret (fail-closed: reject if not configured)
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    return NextResponse.json(
-      { success: false, error: "CRON_SECRET not configured" },
-      { status: 500 },
-    );
-  }
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  // Verify cron secret (timing-safe, fail-closed)
+  if (!verifyCronSecret(request.headers.get("authorization"))) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 },

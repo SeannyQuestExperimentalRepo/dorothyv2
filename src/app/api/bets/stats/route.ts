@@ -61,9 +61,6 @@ function computeStreak(
 }
 
 export async function GET(req: NextRequest) {
-  const limited = applyRateLimit(req, authLimiter);
-  if (limited) return limited;
-
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -72,6 +69,9 @@ export async function GET(req: NextRequest) {
         { status: 401 },
       );
     }
+
+    const limited = applyRateLimit(req, authLimiter, session.user.id);
+    if (limited) return limited;
 
     const { searchParams } = req.nextUrl;
     const sport = searchParams.get("sport")?.toUpperCase() as

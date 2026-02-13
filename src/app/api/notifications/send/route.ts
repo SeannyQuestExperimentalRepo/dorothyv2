@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { prisma } from "@/lib/db";
 import { publicLimiter, applyRateLimit } from "@/lib/rate-limit";
+import { verifyCronSecret } from "@/lib/auth-helpers";
 
 // Configure VAPID keys (generate with: npx web-push generate-vapid-keys)
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -22,10 +23,8 @@ export async function POST(req: NextRequest) {
   const limited = applyRateLimit(req, publicLimiter);
   if (limited) return limited;
 
-  // Auth: CRON_SECRET required
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = req.headers.get("authorization");
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  // Auth: CRON_SECRET required (timing-safe)
+  if (!verifyCronSecret(req.headers.get("authorization"))) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 },
