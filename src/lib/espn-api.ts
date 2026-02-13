@@ -107,6 +107,7 @@ async function fetchJSON<T>(url: string, retries = MAX_RETRIES): Promise<T> {
       const res = await fetch(url, {
         signal: controller.signal,
         headers: { "User-Agent": "TrendLine/1.0" },
+        cache: "no-store",
       });
       if (!res.ok) {
         // Don't retry 4xx client errors (except 429 rate limit)
