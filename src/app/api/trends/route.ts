@@ -9,7 +9,6 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import {
   executeTrendQueryCached,
   buildQuery,
@@ -20,103 +19,11 @@ import {
 import { enrichGameSummary } from "@/lib/significance-enrichment";
 import { queryLimiter, applyRateLimit } from "@/lib/rate-limit";
 import { trackError, trackTiming, startTimer } from "@/lib/error-tracking";
+import { TrendQuerySchema, SportSchema, PerspectiveSchema } from "@/lib/trend-query-schema";
 
 // Vercel serverless config
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-
-// --- Zod Schemas ---
-
-const FilterOperatorSchema = z.enum([
-  "eq",
-  "neq",
-  "gt",
-  "gte",
-  "lt",
-  "lte",
-  "in",
-  "notIn",
-  "contains",
-  "between",
-]);
-
-/** Whitelist of filter fields that map to TrendGame properties + computed fields. */
-const VALID_FILTER_FIELDS = [
-  // Core
-  "sport", "season", "gameDate", "homeTeam", "awayTeam",
-  // Scores
-  "homeScore", "awayScore", "scoreDifference", "totalPoints", "winner",
-  // Rankings
-  "homeRank", "awayRank", "homeKenpomRank", "awayKenpomRank",
-  // Betting
-  "spread", "overUnder", "spreadResult", "ouResult",
-  // Context
-  "isConferenceGame", "isPlayoff", "isNeutralSite",
-  // Scheduling
-  "week", "dayOfWeek", "isPrimetime", "primetimeSlot",
-  // Weather
-  "weatherCategory", "temperature", "windMph",
-  // NCAAF
-  "isBowlGame", "bowlName",
-  // NCAAMB
-  "isNCAAT", "isNIT", "isConfTourney", "overtimes", "homeSeed", "awaySeed",
-  // KenPom
-  "homeAdjEM", "awayAdjEM", "homeAdjOE", "awayAdjOE",
-  "homeAdjDE", "awayAdjDE", "homeAdjTempo", "awayAdjTempo",
-  // Predictions
-  "fmHomePred", "fmAwayPred", "fmHomeWinProb", "fmThrillScore",
-  // Rest / bye
-  "homeRestDays", "awayRestDays", "restAdvantage",
-  "homeIsByeWeek", "awayIsByeWeek", "isShortWeek",
-  "homeIsBackToBack", "awayIsBackToBack",
-  // Conferences
-  "homeConference", "awayConference",
-  // KenPom matchup
-  "expectedPace", "paceMismatch", "efficiencyGap",
-  "kenpomPredMargin", "isKenpomUpset", "gameStyle",
-  // Computed
-  "month", "year", "monthName",
-  // Perspective-aware (used by NLP parser)
-  "isHome", "isFavorite",
-] as const;
-
-const TrendFilterSchema = z.object({
-  field: z.enum(VALID_FILTER_FIELDS),
-  operator: FilterOperatorSchema,
-  value: z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(z.union([z.string(), z.number()])).max(50),
-  ]),
-});
-
-const SportSchema = z.enum(["NFL", "NCAAF", "NCAAMB", "ALL"]);
-
-const PerspectiveSchema = z.enum([
-  "home",
-  "away",
-  "favorite",
-  "underdog",
-  "team",
-  "opponent",
-]);
-
-export const TrendQuerySchema = z.object({
-  sport: SportSchema,
-  team: z.string().max(100).optional(),
-  perspective: PerspectiveSchema.optional(),
-  filters: z.array(TrendFilterSchema).max(10).default([]),
-  seasonRange: z.tuple([z.number().int(), z.number().int()]).optional(),
-  limit: z.number().int().positive().max(1000).optional(),
-  orderBy: z
-    .object({
-      field: z.enum(VALID_FILTER_FIELDS),
-      direction: z.enum(["asc", "desc"]),
-    })
-    .optional(),
-});
 
 // --- Helpers ---
 

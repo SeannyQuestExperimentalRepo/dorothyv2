@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/../../auth";
 import { prisma } from "@/lib/db";
 import { authLimiter, applyRateLimit } from "@/lib/rate-limit";
-import { TrendQuerySchema } from "@/app/api/trends/route";
+import { TrendQuerySchema } from "@/lib/trend-query-schema";
 import type { Sport } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
