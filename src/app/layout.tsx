@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import dynamic from "next/dynamic";
@@ -69,7 +70,17 @@ export default function RootLayout({
               <div className="mx-auto flex max-w-7xl gap-6 px-4">
                 <div className="min-w-0 flex-1">{children}</div>
                 <div className="hidden lg:block">
-                  <UpcomingGamesSidebar />
+                  <Suspense
+                    fallback={
+                      <div className="w-72 space-y-3 pt-8">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div key={i} className="h-16 animate-pulse rounded-lg bg-card" />
+                        ))}
+                      </div>
+                    }
+                  >
+                    <UpcomingGamesSidebar />
+                  </Suspense>
                 </div>
               </div>
             </main>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import dynamic from "next/dynamic";
+import { useSportSelection } from "@/hooks/use-sport-selection";
 import { OddsComparison } from "@/components/odds/odds-comparison";
 
 const SignificantMovesCard = dynamic(
@@ -11,17 +11,8 @@ const SignificantMovesCard = dynamic(
 
 const SPORTS = ["NCAAMB", "NBA", "NFL", "NCAAF"] as const;
 
-/** Pick the sport most likely to have games today */
-function defaultSport(): string {
-  const m = new Date().getMonth();
-  if (m >= 10 || m <= 2) return "NCAAMB";
-  if (m >= 9 || m <= 5) return "NBA";
-  if (m >= 8) return "NFL";
-  return "NFL";
-}
-
 export default function OddsPage() {
-  const [sport, setSport] = useState<string>(defaultSport);
+  const { sport, setSport } = useSportSelection();
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">

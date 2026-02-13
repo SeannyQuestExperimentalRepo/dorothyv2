@@ -5,12 +5,21 @@ import authConfig from "../auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-const publicRoutes = ["/login", "/signup", "/admin"];
+// Routes that require authentication
+const protectedPrefixes = ["/bets", "/trends/saved"];
+
+// Auth-only pages (redirect logged-in users away from these)
+const authPages = ["/login", "/signup"];
+
+function isProtectedRoute(pathname: string): boolean {
+  return protectedPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
+  );
+}
 
 export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
-  const isPublic = publicRoutes.includes(nextUrl.pathname);
 
   // Set Sentry user context for authenticated requests
   if (isLoggedIn && req.auth?.user) {
@@ -22,12 +31,13 @@ export default auth((req) => {
     Sentry.setUser(null);
   }
 
-  if (!isLoggedIn && !isPublic) {
+  // Protected routes require login
+  if (!isLoggedIn && isProtectedRoute(nextUrl.pathname)) {
     return NextResponse.redirect(new URL("/login", nextUrl));
   }
 
-  // Redirect logged-in users away from login/signup (but not /admin)
-  if (isLoggedIn && isPublic && nextUrl.pathname !== "/admin") {
+  // Redirect logged-in users away from login/signup
+  if (isLoggedIn && authPages.includes(nextUrl.pathname)) {
     return NextResponse.redirect(new URL("/", nextUrl));
   }
 

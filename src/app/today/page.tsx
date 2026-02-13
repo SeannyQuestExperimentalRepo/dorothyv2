@@ -1,25 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { useDailyPicks, usePickRecord } from "@/hooks/use-daily-picks";
+import { useSportSelection } from "@/hooks/use-sport-selection";
 import { useLiveScores } from "@/hooks/use-live-scores";
 import { TrackRecordBar } from "@/components/picks/track-record-bar";
 import { GamePickCard } from "@/components/picks/game-pick-card";
 import { PropPickCard } from "@/components/picks/prop-pick-card";
 
 const SPORTS = ["NCAAMB", "NBA", "NFL", "NCAAF"] as const;
-
-/** Pick the sport most likely to have games today */
-function defaultSport(): string {
-  const m = new Date().getMonth(); // 0-indexed
-  // Nov–Mar: college basketball season
-  if (m >= 10 || m <= 2) return "NCAAMB";
-  // Oct–Jun: NBA season
-  if (m >= 9 || m <= 5) return "NBA";
-  // Sep–Jan: college/pro football overlap
-  if (m >= 8) return "NFL";
-  return "NFL";
-}
 
 function todayET(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
@@ -36,7 +24,7 @@ function formatDate(date: string): string {
 }
 
 export default function TodayPage() {
-  const [sport, setSport] = useState<string>(defaultSport);
+  const { sport, setSport } = useSportSelection();
   const date = todayET();
 
   const { data: picksData, isLoading, error: picksError } = useDailyPicks(sport, date);
