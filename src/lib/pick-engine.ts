@@ -412,6 +412,7 @@ function computeKenPomEdge(
   overUnder: number | null,
   gameDate: Date,
   fanMatch: KenpomFanMatch[] | null = null,
+  isNeutralSite: boolean = false,
 ): { spread: SignalResult; ou: SignalResult; ouMeta?: { absEdge: number; avgTempo: number; ouDir: "over" | "under" } } {
   const neutral: SignalResult = {
     category: "modelEdge",
@@ -457,13 +458,18 @@ function computeKenPomEdge(
       marginSource = `FanMatch: ${fm.HomePred.toFixed(0)}-${fm.VisitorPred.toFixed(0)} (WP ${(fm.HomeWP * 100).toFixed(0)}%)`;
     } else {
       // Fallback: AdjEM + context-aware HCA
-      const isConfGame = homeRating.ConfShort === awayRating.ConfShort;
-      const hca = isConfGame ? 2.5
-        : gameMonth >= 3 && gameMonth <= 4 ? 0.5  // March Madness (neutral sites)
-        : gameMonth >= 11 ? 1.0                    // November (MTE/exempt tourneys)
-        : 1.5;                                      // non-conference regular season
+      let hca: number;
+      if (isNeutralSite) {
+        hca = 0; // No home court advantage at neutral sites
+      } else {
+        const isConfGame = homeRating.ConfShort === awayRating.ConfShort;
+        hca = isConfGame ? 2.5
+          : gameMonth >= 3 && gameMonth <= 4 ? 0.5  // March Madness (mostly neutral)
+          : gameMonth >= 11 ? 1.0                    // November (MTE/exempt tourneys)
+          : 1.5;                                      // non-conference regular season
+      }
       predictedMargin = homeEM - awayEM + hca;
-      marginSource = `AdjEM (HCA=${hca.toFixed(1)})`;
+      marginSource = `AdjEM (HCA=${hca.toFixed(1)}${isNeutralSite ? " neutral" : ""})`;
     }
     const spreadEdge = predictedMargin + spread; // spread negative when home favored
     let absMag = clamp(Math.abs(spreadEdge) / 0.7, 0, 10);
@@ -2045,7 +2051,7 @@ export async function generateDailyPicks(
 
           // Compute model edge (KenPom for NCAAMB, SP+ for NCAAF, power rating for NFL/NBA)
           const modelPrediction = sport === "NCAAMB"
-            ? computeKenPomEdge(kenpomRatings, game.homeTeam, game.awayTeam, sport, game.spread, game.overUnder, game.gameDate, kenpomFanMatch)
+            ? computeKenPomEdge(kenpomRatings, game.homeTeam, game.awayTeam, sport, game.spread, game.overUnder, game.gameDate, kenpomFanMatch, game.isNeutralSite ?? false)
             : sport === "NCAAF" && cfbdRatings && cfbdRatings.size > 0
               ? computeSPEdge(cfbdRatings, game.homeTeam, game.awayTeam, game.spread, game.overUnder)
               : computePowerRatingEdge(allGames, canonHome, canonAway, sport, currentSeason, game.spread, game.overUnder);

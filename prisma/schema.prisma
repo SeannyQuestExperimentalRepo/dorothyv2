@@ -90,6 +90,9 @@ model Team {
   nbaAwayGames NBAGame[] @relation("NBAAwayTeam")
   nbaWins      NBAGame[] @relation("NBAWinner")
 
+  // Name mapping
+  nameMapping TeamNameMapping[]
+
   @@unique([sport, name])
   @@index([sport])
   @@index([sport, conference])
@@ -691,4 +694,16 @@ model KenpomHeight {
   @@unique([season, teamName])
   @@index([season])
   @@index([teamName])
+}
+
+// ─── TEAM NAME MAPPING ─────────────────────────────────────────────────────
+
+model TeamNameMapping {
+  id         Int      @id @default(autoincrement())
+  kenpomName String   @unique // KenPom team name (e.g. "St. Bonaventure")
+  espnName   String   // ESPN/DB team name (e.g. "Saint Bonaventure")
+  teamId     Int?     // FK to Team table
+  team       Team?    @relation(fields: [teamId], references: [id])
+  confidence String   @default("manual") // 'exact', 'fuzzy', 'manual'
+  createdAt  DateTime @default(now())
 }

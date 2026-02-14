@@ -389,10 +389,10 @@ const DB_TO_KENPOM: Record<string, string> = {
   "UT Arlington": "UT Arlington",
   "UT Martin": "Tennessee Martin",
   "FIU": "FIU",
-  "LIU": "LIU",
+  "LIU": "LIU Brooklyn",
   "NIU": "Northern Illinois",
   "SIU": "Southern Illinois",
-  "SIU Edwardsville": "SIU Edwardsville",
+  "SIU Edwardsville": "SIUE",
   "UIC": "Illinois Chicago",
   "IUPUI": "IUPUI",
   "Miami (FL)": "Miami FL",
@@ -457,6 +457,21 @@ const DB_TO_KENPOM: Record<string, string> = {
   "Detroit": "Detroit Mercy",
   "Green Bay": "Green Bay",
   "Milwaukee": "Milwaukee",
+  // Orphaned KenPom names (school rebrands, abbreviation differences)
+  "CSUN": "Cal St. Northridge",
+  "Indianapolis": "IUPUI", // rebranded from IUPUI → Indianapolis in 2024
+  "McNeese": "McNeese St.",
+  "Nicholls": "Nicholls St.",
+  "Kansas City": "UMKC",
+  "Saint Francis": "St. Francis PA",
+  "Houston Christian": "Houston Baptist", // rebranded 2022
+  "Charleston": "College of Charleston",
+  "Purdue Fort Wayne": "Fort Wayne", // also was IPFW
+  "UT Rio Grande Valley": "Texas Pan American", // merged 2015
+  "Queens (NC)": "Queens",
+  "East Texas A&M": "Texas A&M Commerce", // rebranded 2024
+  "Utah Tech": "Dixie St.", // rebranded 2022
+  "Southeast Missouri St.": "Southeast Missouri",
 };
 
 function normalizeToKenpom(dbName: string): string {
