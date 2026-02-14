@@ -59,6 +59,23 @@ export async function refreshUpcomingGames(sport: Sport): Promise<RefreshResult>
   // Fetch AP Top 25 rankings (NCAAMB/NCAAF only; empty map for NFL)
   const apRankings = await fetchAPRankings(sport);
 
+  // ESPN odds API doesn't include neutralSite — fetch from scoreboard API
+  // Collect unique dates, then fetch scoreboard for each to get neutralSite flag
+  const uniqueDates = new Set<string>();
+  for (const g of games) {
+    const dateStr = g.date.split("T")[0].replace(/-/g, "");
+    uniqueDates.add(dateStr);
+  }
+  const neutralSiteMap = new Map<string, boolean>();
+  for (const dateStr of Array.from(uniqueDates)) {
+    const sbGames = await fetchScoreboard(sport, dateStr);
+    for (const sb of sbGames) {
+      // Key by lowercase home|away display names for matching
+      const key = `${sb.homeTeam.displayName.toLowerCase()}|${sb.awayTeam.displayName.toLowerCase()}`;
+      neutralSiteMap.set(key, sb.neutralSite);
+    }
+  }
+
   let upserted = 0;
   for (const g of games) {
     // Only store games with at least one useful odds field
@@ -68,6 +85,10 @@ export async function refreshUpcomingGames(sport: Sport): Promise<RefreshResult>
     const homeTeam = g.homeCanonical ?? g.homeTeam.displayName;
     const awayTeam = g.awayCanonical ?? g.awayTeam.displayName;
     const gameDate = new Date(g.date);
+
+    // Look up neutralSite from scoreboard data (odds API doesn't include it)
+    const nsKey = `${g.homeTeam.displayName.toLowerCase()}|${g.awayTeam.displayName.toLowerCase()}`;
+    const isNeutralSite = neutralSiteMap.get(nsKey) ?? false;
 
     // Look up AP rankings — prefer ESPN team ID (reliable), fall back to name matching
     const homeRank = apRankings.get(`espn:${g.homeTeam.espnId}`)
@@ -100,7 +121,7 @@ export async function refreshUpcomingGames(sport: Sport): Promise<RefreshResult>
             awayTeam,
             homeRank,
             awayRank,
-            isNeutralSite: g.neutralSite,
+            isNeutralSite,
             spread: g.odds.spread,
             overUnder: g.odds.overUnder,
             moneylineHome: g.odds.moneylineHome,
@@ -109,7 +130,7 @@ export async function refreshUpcomingGames(sport: Sport): Promise<RefreshResult>
           update: {
             homeRank,
             awayRank,
-            isNeutralSite: g.neutralSite,
+            isNeutralSite,
             spread: g.odds.spread,
             overUnder: g.odds.overUnder,
             moneylineHome: g.odds.moneylineHome,
