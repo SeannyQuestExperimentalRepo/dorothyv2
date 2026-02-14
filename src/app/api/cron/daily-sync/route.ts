@@ -251,6 +251,82 @@ export async function POST(request: NextRequest) {
       results.kenpom_snapshot = { error: "Unknown error" };
     }
 
+    // 2.67. Refresh current-season KenPom supplemental data (point dist, height)
+    try {
+      const suppResult = await Sentry.startSpan(
+        { name: "cron.kenpom_supplemental.NCAAMB", op: "cron.step" },
+        async () => {
+          const { getKenpomPointDist, getKenpomHeight } = await import("@/lib/kenpom");
+          const { prisma } = await import("@/lib/db");
+
+          const season = new Date().getMonth() >= 10
+            ? new Date().getFullYear() + 1
+            : new Date().getFullYear();
+
+          // Delete + re-insert current season (data changes daily)
+          await prisma.kenpomPointDist.deleteMany({ where: { season } });
+          const pdRaw = await getKenpomPointDist(season);
+          const pdResult = await prisma.kenpomPointDist.createMany({
+            data: pdRaw.map((r) => ({
+              season: r.Season,
+              teamName: r.TeamName,
+              confShort: r.ConfShort,
+              offFt: r.OffFt,
+              offFg2: r.OffFg2,
+              offFg3: r.OffFg3,
+              rankOffFt: r.RankOffFt,
+              rankOffFg2: r.RankOffFg2,
+              rankOffFg3: r.RankOffFg3,
+              defFt: r.DefFt,
+              defFg2: r.DefFg2,
+              defFg3: r.DefFg3,
+              rankDefFt: r.RankDefFt,
+              rankDefFg2: r.RankDefFg2,
+              rankDefFg3: r.RankDefFg3,
+            })),
+          });
+
+          await prisma.kenpomHeight.deleteMany({ where: { season } });
+          const htRaw = await getKenpomHeight(season);
+          const htResult = await prisma.kenpomHeight.createMany({
+            data: htRaw.map((r) => ({
+              season: r.Season,
+              teamName: r.TeamName,
+              confShort: r.ConfShort,
+              avgHgt: r.AvgHgt,
+              avgHgtRank: r.AvgHgtRank,
+              hgtEff: r.HgtEff,
+              hgtEffRank: r.HgtEffRank,
+              hgt5: r.Hgt5,
+              hgt5Rank: r.Hgt5Rank,
+              hgt4: r.Hgt4,
+              hgt4Rank: r.Hgt4Rank,
+              hgt3: r.Hgt3,
+              hgt3Rank: r.Hgt3Rank,
+              hgt2: r.Hgt2,
+              hgt2Rank: r.Hgt2Rank,
+              hgt1: r.Hgt1,
+              hgt1Rank: r.Hgt1Rank,
+              exp: r.Exp,
+              expRank: r.ExpRank,
+              bench: r.Bench,
+              benchRank: r.BenchRank,
+              continuity: r.Continuity,
+              continuityRank: r.RankContinuity,
+            })),
+          });
+
+          return { pointDist: pdResult.count, height: htResult.count, season };
+        },
+      );
+      results.kenpom_supplemental = suppResult;
+      console.log(`[Cron] KenPom supplemental:`, suppResult);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { cronStep: "kenpom_supplemental", sport: "NCAAMB" } });
+      console.error("[Cron] KenPom supplemental refresh failed:", err);
+      results.kenpom_supplemental = { error: "Unknown error" };
+    }
+
     // 2.7. Enrich NCAAF games with SP+ ratings from CollegeFootballData.com
     // SP+ (overall/offense/defense) are the NCAAF equivalent of KenPom metrics.
     try {

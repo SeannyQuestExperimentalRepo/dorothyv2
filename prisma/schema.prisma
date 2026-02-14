@@ -629,3 +629,65 @@ model KenpomSnapshot {
   @@index([snapshotDate])
   @@index([teamName])
 }
+
+// ─── KENPOM POINT DISTRIBUTION ──────────────────────────────────────────────
+
+model KenpomPointDist {
+  id          Int      @id @default(autoincrement())
+  season      Int
+  teamName    String
+  confShort   String
+  // Offensive scoring distribution (% of points from each source)
+  offFt       Float    // % from free throws
+  offFg2      Float    // % from 2-point FGs
+  offFg3      Float    // % from 3-point FGs
+  rankOffFt   Int
+  rankOffFg2  Int
+  rankOffFg3  Int
+  // Defensive scoring distribution
+  defFt       Float
+  defFg2      Float
+  defFg3      Float
+  rankDefFt   Int
+  rankDefFg2  Int
+  rankDefFg3  Int
+  createdAt   DateTime @default(now())
+
+  @@unique([season, teamName])
+  @@index([season])
+  @@index([teamName])
+}
+
+// ─── KENPOM HEIGHT / EXPERIENCE ─────────────────────────────────────────────
+
+model KenpomHeight {
+  id            Int      @id @default(autoincrement())
+  season        Int
+  teamName      String
+  confShort     String
+  avgHgt        Float    // Average height (inches)
+  avgHgtRank    Int
+  hgtEff        Float    // Height-adjusted efficiency
+  hgtEffRank    Int
+  hgt5          Float    // C height
+  hgt5Rank      Int
+  hgt4          Float    // PF height
+  hgt4Rank      Int
+  hgt3          Float    // SF height
+  hgt3Rank      Int
+  hgt2          Float    // SG height
+  hgt2Rank      Int
+  hgt1          Float    // PG height
+  hgt1Rank      Int
+  exp           Float    // Experience (years)
+  expRank       Int
+  bench         Float    // Bench minutes share
+  benchRank     Int
+  continuity    Float    // Roster continuity %
+  continuityRank Int
+  createdAt     DateTime @default(now())
+
+  @@unique([season, teamName])
+  @@index([season])
+  @@index([teamName])
+}

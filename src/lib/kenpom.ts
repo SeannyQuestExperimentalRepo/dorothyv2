@@ -14,25 +14,66 @@ const KENPOM_BASE = "https://kenpom.com/api.php";
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface KenpomRating {
-  TeamName: string;
+  DataThrough: string;
   Season: number;
-  RankAdjEM: number;
-  AdjEM: number;
-  AdjOE: number;
-  RankAdjOE: number;
-  AdjDE: number;
-  RankAdjDE: number;
-  AdjTempo: number;
-  RankAdjTempo: number;
+  TeamName: string;
+  Seed: number;
+  ConfShort: string;
+  Coach: string;
   Wins: number;
   Losses: number;
-  ConfShort: string;
+  // Core efficiency
+  AdjEM: number;
+  RankAdjEM: number;
+  Pythag: number;
+  RankPythag: number;
+  // Offense
+  AdjOE: number;
+  RankAdjOE: number;
+  OE: number; // Raw (unadjusted)
+  RankOE: number;
+  // Defense
+  AdjDE: number;
+  RankAdjDE: number;
+  DE: number; // Raw (unadjusted)
+  RankDE: number;
+  // Tempo
+  Tempo: number; // Raw
+  RankTempo: number;
+  AdjTempo: number;
+  RankAdjTempo: number;
+  // Luck
+  Luck: number;
+  RankLuck: number;
+  // Strength of schedule
+  SOS: number;
+  RankSOS: number;
+  SOSO: number; // Offensive SOS
+  RankSOSO: number;
+  SOSD: number; // Defensive SOS
+  RankSOSD: number;
+  NCSOS: number; // Non-conference SOS
+  RankNCSOS: number;
+  // Tournament / event
+  Event: string | null;
+  // Average possession length
+  APL_Off: number;
+  RankAPL_Off: number;
+  APL_Def: number;
+  RankAPL_Def: number;
+  ConfAPL_Off: number;
+  RankConfAPL_Off: number;
+  ConfAPL_Def: number;
+  RankConfAPL_Def: number;
 }
 
 export interface KenpomArchiveRating {
   ArchiveDate: string;
   Season: number;
+  Preseason: string;
   TeamName: string;
+  Seed: number;
+  Event: string | null;
   ConfShort: string;
   AdjEM: number;
   RankAdjEM: number;
@@ -42,6 +83,64 @@ export interface KenpomArchiveRating {
   RankAdjDE: number;
   AdjTempo: number;
   RankAdjTempo: number;
+  AdjEMFinal: number;
+  RankAdjEMFinal: number;
+  AdjOEFinal: number;
+  RankAdjOEFinal: number;
+  AdjDEFinal: number;
+  RankAdjDEFinal: number;
+  AdjTempoFinal: number;
+  RankAdjTempoFinal: number;
+  RankChg: number;
+  AdjEMChg: number;
+  AdjTChg: number;
+}
+
+export interface KenpomPointDist {
+  DataThrough: string;
+  ConfOnly: string;
+  Season: number;
+  TeamName: string;
+  ConfShort: string;
+  OffFt: number;
+  RankOffFt: number;
+  OffFg2: number;
+  RankOffFg2: number;
+  OffFg3: number;
+  RankOffFg3: number;
+  DefFt: number;
+  RankDefFt: number;
+  DefFg2: number;
+  RankDefFg2: number;
+  DefFg3: number;
+  RankDefFg3: number;
+}
+
+export interface KenpomHeight {
+  DataThrough: string;
+  Season: number;
+  TeamName: string;
+  ConfShort: string;
+  AvgHgt: number;
+  AvgHgtRank: number;
+  HgtEff: number;
+  HgtEffRank: number;
+  Hgt5: number;
+  Hgt5Rank: number;
+  Hgt4: number;
+  Hgt4Rank: number;
+  Hgt3: number;
+  Hgt3Rank: number;
+  Hgt2: number;
+  Hgt2Rank: number;
+  Hgt1: number;
+  Hgt1Rank: number;
+  Exp: number;
+  ExpRank: number;
+  Bench: number;
+  BenchRank: number;
+  Continuity: number;
+  RankContinuity: number;
 }
 
 export interface KenpomFanMatch {
@@ -67,13 +166,18 @@ interface CacheEntry<T> {
 
 const RATINGS_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const FANMATCH_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+const SUPPLEMENTAL_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 const ratingsCacheByseason = new Map<number, CacheEntry<Map<string, KenpomRating>>>();
 const fanMatchCache = new Map<string, CacheEntry<KenpomFanMatch[]>>();
+const pointDistCache = new Map<number, CacheEntry<KenpomPointDist[]>>();
+const heightCache = new Map<number, CacheEntry<KenpomHeight[]>>();
 
 export function clearKenpomCache(): void {
   ratingsCacheByseason.clear();
   fanMatchCache.clear();
+  pointDistCache.clear();
+  heightCache.clear();
 }
 
 // ─── API Helpers ────────────────────────────────────────────────────────────
@@ -172,6 +276,58 @@ export async function getKenpomArchiveRatings(
     endpoint: "archive",
     d: date,
   });
+}
+
+/**
+ * Fetch point distribution data for the given season.
+ * Shows % of points from FT, 2P, 3P (offense and defense).
+ * Cached for 24 hours.
+ */
+export async function getKenpomPointDist(
+  season?: number,
+): Promise<KenpomPointDist[]> {
+  const y = season ?? getCurrentKenpomSeason();
+  const now = Date.now();
+
+  const cached = pointDistCache.get(y);
+  if (cached && now - cached.fetchedAt < SUPPLEMENTAL_TTL_MS) {
+    return cached.data;
+  }
+
+  const raw = await fetchKenpom<KenpomPointDist[]>({
+    endpoint: "pointdist",
+    y: String(y),
+  });
+
+  pointDistCache.set(y, { data: raw, fetchedAt: now });
+  console.log(`[kenpom] Fetched ${raw.length} point dist records for ${y}`);
+  return raw;
+}
+
+/**
+ * Fetch height/experience data for the given season.
+ * Includes avg height by position, experience, bench usage, continuity.
+ * Cached for 24 hours.
+ */
+export async function getKenpomHeight(
+  season?: number,
+): Promise<KenpomHeight[]> {
+  const y = season ?? getCurrentKenpomSeason();
+  const now = Date.now();
+
+  const cached = heightCache.get(y);
+  if (cached && now - cached.fetchedAt < SUPPLEMENTAL_TTL_MS) {
+    return cached.data;
+  }
+
+  const raw = await fetchKenpom<KenpomHeight[]>({
+    endpoint: "height",
+    y: String(y),
+  });
+
+  heightCache.set(y, { data: raw, fetchedAt: now });
+  console.log(`[kenpom] Fetched ${raw.length} height records for ${y}`);
+  return raw;
 }
 
 /**
