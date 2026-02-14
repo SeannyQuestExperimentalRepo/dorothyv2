@@ -608,3 +608,24 @@ model PushSubscription {
 
   @@index([userId])
 }
+
+// ─── KENPOM DAILY SNAPSHOTS ─────────────────────────────────────────────────
+
+model KenpomSnapshot {
+  id           Int      @id @default(autoincrement())
+  snapshotDate DateTime // The date this rating snapshot is from
+  season       Int      // KenPom season (ending year)
+  teamName     String   // KenPom team name (e.g. "Michigan St.")
+  adjEM        Float
+  adjOE        Float
+  adjDE        Float
+  adjTempo     Float
+  rankAdjEM    Int
+  confShort    String
+  createdAt    DateTime @default(now())
+
+  @@unique([snapshotDate, teamName])
+  @@index([season])
+  @@index([snapshotDate])
+  @@index([teamName])
+}

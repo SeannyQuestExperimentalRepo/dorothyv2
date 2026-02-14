@@ -208,6 +208,49 @@ export async function POST(request: NextRequest) {
       results.kenpom_enrich_NCAAMB = { error: "Unknown error" };
     }
 
+    // 2.65. Capture daily KenPom snapshot for PIT backtest dataset
+    // Stores today's ratings in KenpomSnapshot for future model retraining.
+    try {
+      const snapshotResult = await Sentry.startSpan(
+        { name: "cron.kenpom_snapshot.NCAAMB", op: "cron.step" },
+        async () => {
+          const { getKenpomArchiveRatings } = await import("@/lib/kenpom");
+          const { prisma } = await import("@/lib/db");
+          const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+          const snapshotDate = new Date(todayStr + "T00:00:00Z");
+
+          // Skip if we already captured today
+          const existing = await prisma.kenpomSnapshot.count({ where: { snapshotDate } });
+          if (existing > 0) return { skipped: true, existing };
+
+          const ratings = await getKenpomArchiveRatings(todayStr);
+          if (!ratings || ratings.length === 0) return { skipped: true, reason: "no data" };
+
+          const result = await prisma.kenpomSnapshot.createMany({
+            data: ratings.map((r) => ({
+              snapshotDate,
+              season: r.Season,
+              teamName: r.TeamName,
+              adjEM: r.AdjEM,
+              adjOE: r.AdjOE,
+              adjDE: r.AdjDE,
+              adjTempo: r.AdjTempo,
+              rankAdjEM: r.RankAdjEM,
+              confShort: r.ConfShort,
+            })),
+            skipDuplicates: true,
+          });
+          return { captured: result.count };
+        },
+      );
+      results.kenpom_snapshot = snapshotResult;
+      console.log(`[Cron] KenPom snapshot:`, snapshotResult);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { cronStep: "kenpom_snapshot", sport: "NCAAMB" } });
+      console.error("[Cron] KenPom snapshot capture failed:", err);
+      results.kenpom_snapshot = { error: "Unknown error" };
+    }
+
     // 2.7. Enrich NCAAF games with SP+ ratings from CollegeFootballData.com
     // SP+ (overall/offense/defense) are the NCAAF equivalent of KenPom metrics.
     try {

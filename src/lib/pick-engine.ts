@@ -1,5 +1,5 @@
 /**
- * Daily Pick Engine v8.1
+ * Daily Pick Engine v9
  *
  * Signal Convergence Scoring Model — generates daily betting picks by
  * evaluating 9 independent signal categories:
@@ -14,13 +14,14 @@
  *   8. Tempo Differential — pace mismatch O/U signal (NCAAMB)
  *   9. Market Edge — KenPom WP vs moneyline implied probability (NCAAMB)
  *
- * v8.1 changes (604-iteration backtest):
- *   - NCAAMB O/U: tier-based star assignment replaces convergence-gated stars
- *   - 5★ Aggressive: UNDER + edge >= 2.0 + avgTempo <= 67 (75.7% OOS)
- *   - 4★ Hybrid: UNDER edge >= 2.0 OR OVER line < 140 edge >= 5.0 (70.7% OOS)
- *   - 3★ Base: edge >= 1.5 (63.3% OOS)
- *   - Regression edge gates pick generation (not convergence score)
- *   - Regression direction used for NCAAMB O/U (not multi-signal consensus)
+ * v9 changes (PIT honest backtest):
+ *   - O/U regression: EOS 7-feature → PIT 4-feature model (eliminates look-ahead bias)
+ *   - Coefficients trained on 70,303 games (2012-2025) with point-in-time KenPom snapshots
+ *   - Walk-forward validated: 62.8% across 13/14 profitable seasons
+ *   - NCAAMB O/U tiers recalibrated (config #26, monotonic in 12/13 seasons):
+ *     - 5★: UNDER + edge >= 12 + avgTempo <= 64 (82.3% OOS, ~2.4/wk)
+ *     - 4★: UNDER + edge >= 10 (74.9% OOS, ~16.7/wk)
+ *     - 3★: edge >= 9 (68.0% OOS, ~59.1/wk)
  *   - Non-NCAAMB O/U and all spread picks unchanged
  *
  * v8 changes:
@@ -499,31 +500,23 @@ function computeKenPomEdge(
     };
   }
 
-  // ── O/U: Ridge regression-predicted total (v8) ──
-  // Ridge regression (λ=1000) on 2025 NCAAMB games. Walk-forward validated 68.9-73.0%.
-  // OOS 2026: 65.7% accuracy (up from 52.2% in v7). Gap: 4.3pp (down from 17.4pp).
-  // Coefficients from scripts/backtest/phase3-validation.ts.
+  // ── O/U: Ridge regression-predicted total (v9) ──
+  // PIT Ridge λ=1000, 4 features, trained on 70,303 games (2012-2025 PIT snapshots).
+  // Walk-forward validated: 62.8% across 14 seasons (13/14 profitable).
+  // Coefficients from scripts/backtest/extract-pit-coefficients.js.
   let ouSignal: SignalResult = { ...neutral };
   let ouMeta: { absEdge: number; avgTempo: number; ouDir: "over" | "under" } | undefined;
   if (overUnder !== null) {
     const sumAdjDE = homeDE + awayDE;
     const sumAdjOE = homeRating.AdjOE + awayRating.AdjOE;
     const avgTempo = (homeTempo + awayTempo) / 2;
-    const tempoDiff = Math.abs(homeTempo - awayTempo);
-    const emAbsDiff = Math.abs(homeEM - awayEM);
-    const isConf = homeRating.ConfShort === awayRating.ConfShort ? 1 : 0;
-    const fmTotal = fm ? fm.HomePred + fm.VisitorPred : 0;
 
-    // Ridge (λ=1000) coefficients — trained on 2025, validated on 2026
+    // v9: PIT Ridge λ=1000, trained on 70,303 games (2012-2025 PIT snapshots)
     const predictedTotal =
-      -407.6385 +
-      0.6685 * sumAdjDE +
-      0.6597 * sumAdjOE +
-      3.9804 * avgTempo +
-      -0.1391 * tempoDiff +
-      0.0064 * emAbsDiff +
-      -0.6345 * isConf +
-      0.0100 * fmTotal;
+      -233.5315 +
+      0.4346 * sumAdjDE +
+      0.4451 * sumAdjOE +
+      2.8399 * avgTempo;
 
     const edge = predictedTotal - overUnder;
     let ouDir: "over" | "under" | "neutral" = "neutral";
@@ -562,9 +555,7 @@ function computeKenPomEdge(
       labelParts.push(`DE_sum=${sumAdjDE.toFixed(0)} OE_sum=${sumAdjOE.toFixed(0)} tempo=${avgTempo.toFixed(1)}`);
     }
 
-    // v8: All contextual overrides removed (top-50, power conf, 200+, March, line range).
-    // Phase 1 diagnostic: overrides were 78%+ in-sample but coin-flip on 2026 OOS.
-    // Ridge regression alone: 65.7% OOS vs 52.2% with overrides.
+    // v8+: All contextual overrides removed. Ridge regression alone validated at 62.8% PIT.
 
     const finalMag = clamp(ouMag, 0, 10);
     ouSignal = {
@@ -2135,22 +2126,18 @@ export async function generateDailyPicks(
             // v5: skip O/U convergence bonus + require min 3 active signals
             const result = computeConvergenceScore(ouSignals, sportWeightsOU, true, 3);
 
-            // v8.1: NCAAMB O/U uses tier-based stars from 604-iteration backtest.
-            // Gate on regression edge (not convergence score) since backtest validated regression alone.
+            // v9: NCAAMB O/U uses PIT-calibrated tier gates (config #26).
+            // Honest walk-forward backtest, monotonic in 12/13 seasons.
             let confidence: number;
             const ouMeta = (modelPrediction as { ouMeta?: { absEdge: number; avgTempo: number; ouDir: "over" | "under" } }).ouMeta;
             if (sport === "NCAAMB" && ouMeta) {
               const { absEdge, avgTempo, ouDir } = ouMeta;
-              const line = game.overUnder!;
-              if (ouDir === "under" && absEdge >= 2.0 && avgTempo <= 67) {
-                confidence = 5; // Aggressive: 75.7% OOS, ~0.6 picks/day
-              } else if (
-                (ouDir === "under" && absEdge >= 2.0) ||
-                (ouDir === "over" && line < 140 && absEdge >= 5.0)
-              ) {
-                confidence = 4; // Hybrid: 70.7% OOS, ~1.5 picks/day
-              } else if (absEdge >= 1.5) {
-                confidence = 3; // Base: 63.3% OOS, ~4 picks/day
+              if (ouDir === "under" && absEdge >= 12 && avgTempo <= 64) {
+                confidence = 5; // 82.3% OOS, ~2.4/wk
+              } else if (ouDir === "under" && absEdge >= 10) {
+                confidence = 4; // 74.9% OOS, ~16.7/wk
+              } else if (absEdge >= 9) {
+                confidence = 3; // 68.0% OOS, ~59.1/wk
               } else {
                 confidence = 0;
               }
@@ -2161,7 +2148,7 @@ export async function generateDailyPicks(
             if (confidence === 0) {
               context.rejectedInsufficientSignals++;
             } else {
-              // v8.1: For NCAAMB O/U, use regression direction (backtest-validated)
+              // v9: For NCAAMB O/U, use regression direction (PIT-validated)
               // instead of convergence direction (multi-signal consensus)
               const pickDir = (sport === "NCAAMB" && ouMeta)
                 ? ouMeta.ouDir

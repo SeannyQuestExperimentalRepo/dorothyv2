@@ -29,6 +29,21 @@ export interface KenpomRating {
   ConfShort: string;
 }
 
+export interface KenpomArchiveRating {
+  ArchiveDate: string;
+  Season: number;
+  TeamName: string;
+  ConfShort: string;
+  AdjEM: number;
+  RankAdjEM: number;
+  AdjOE: number;
+  RankAdjOE: number;
+  AdjDE: number;
+  RankAdjDE: number;
+  AdjTempo: number;
+  RankAdjTempo: number;
+}
+
 export interface KenpomFanMatch {
   GameID: number;
   DateOfGame: string;
@@ -143,6 +158,20 @@ export async function getKenpomFanMatch(
   fanMatchCache.set(date, { data: raw, fetchedAt: now });
   console.log(`[kenpom] Fetched ${raw.length} FanMatch games for ${date}`);
   return raw;
+}
+
+/**
+ * Fetch archive (point-in-time) ratings for a specific date.
+ * Returns ratings as they were on that date, not end-of-season.
+ * Uses the undocumented `endpoint=archive&d=YYYY-MM-DD` API.
+ */
+export async function getKenpomArchiveRatings(
+  date: string,
+): Promise<KenpomArchiveRating[]> {
+  return fetchKenpom<KenpomArchiveRating[]>({
+    endpoint: "archive",
+    d: date,
+  });
 }
 
 /**
