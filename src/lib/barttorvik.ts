@@ -78,6 +78,16 @@ export async function getBarttovikRatings(
     await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
     await page.waitForSelector("table tbody tr", { timeout: 15000 });
 
+    // Scroll to bottom to trigger lazy-load of remaining rows
+    let prevCount = 0;
+    for (let i = 0; i < 5; i++) {
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await new Promise((r) => setTimeout(r, 1500));
+      const count = await page.evaluate(() => document.querySelectorAll("table tbody tr").length);
+      if (count === prevCount) break;
+      prevCount = count;
+    }
+
     const ratings = await page.evaluate(() => {
       const rows = document.querySelectorAll("table tbody tr");
       const data: Array<{
