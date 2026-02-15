@@ -106,9 +106,28 @@ All activity tracked with timestamps. Pushed daily.
 
 ---
 
+### ~13:30 CST
+- **Phase 1.5 Tournament Readiness prompt written** — `prompts/PHASE-1.5-TOURNAMENT-READINESS.md`
+  - 12 tasks: weight rebalancing (3), tournament logic (5), FanMatch cross-checks (2), stale odds protection, CLV tracking
+  - NCAAMB spread weights restructured: modelEdge 0.23→0.31, eloEdge→0, barttorvik 0.05→0.02, new seedMismatch 0.05
+  - NCAAMB O/U weights restructured: modelEdge 0.28→0.31, barttorvik 0.05→0.02, seasonOU 0.10→0.07, new eloOU 0.03
+  - Tournament UNDER boost: 1.3x multiplier for March neutral-site unders, lowered gates
+  - New signals: eloOU, seedMismatch, conference tournament fatigue detection
+  - Stale odds protection: 0.8x penalty + 3★ cap for >6h old odds
+  - CLV infrastructure: closingSpread/closingTotal fields on DailyPick
+
+- **Phase NFL Foundation prompt written** — `prompts/PHASE-NFL-FOUNDATION.md`
+  - 7 tasks: defensive EPA, Ridge regression, bye/rest, weather fix, confidence tiers, injuries, weight rebalancing
+  - Based on NFL edge exploration report findings
+  - Defensive EPA fix: download nflverse PBP CSV, aggregate by defteam
+  - Ridge regression: replace napkin-math power rating with trained model (5 seasons training data)
+  - Rest signal: bye week (+55% ATS), short week (46% ATS for road teams)
+  - Injury impact scoring: positional value × status multiplier → point adjustment
+  - NFL weights restructured with new restDays and injuries signals
+
 **Running totals:**
 - Findings: 5 critical, 22 high, 32 medium, 20 low (97 total)
 - Edge opportunities: 18 new signals identified
 - Bugs confirmed fixed in trendline: 1 (team name mismatch, commit 28246c9)
 - Proposals pending: 0
-- Prompts delivered: 0
+- Prompts delivered: 2 (Phase 1.5 Tournament Readiness, Phase NFL Foundation)
