@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Trendline Dev Repo
 
-## Getting Started
+Dorothy's workspace for Trendline development — audits, proposals, and implementation prompts.
 
-First, run the development server:
+**Main repo (read-only source):** [SeannyQuest/trendline](https://github.com/SeannyQuest/trendline)  
+**This repo:** Research, audits, proposals, and copy-paste implementation prompts.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 📂 Structure
+
+```
+├── DOROTHY-AUDIT.md          # Master tracking board
+├── audit-reports/            # Full codebase audit (Feb 15, 2026)
+│   ├── pick-engine-audit.md  # 9+ findings (1 critical, 5 high)
+│   ├── security-audit.md     # 12 findings (1 high)
+│   ├── data-quality-audit.md # 16 findings (4 high)
+│   ├── frontend-audit.md     # 28 findings (1 critical, 7 high)
+│   ├── architecture-audit.md # 14 findings (3 critical, 5 high)
+│   └── edge-research.md      # 18 new signal opportunities
+├── proposals/                # Fix/feature proposals (pending review)
+└── prompts/                  # Accepted → ready-to-paste Claude prompts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📊 Audit Summary (Feb 15, 2026)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Area | Critical | High | Medium | Low |
+|------|----------|------|--------|-----|
+| Pick Engine | 1 | 5 | 3 | — |
+| Security | 0 | 1 | 5 | 6 |
+| Data Quality | 0 | 4 | 6 | 6 |
+| Frontend | 1 | 7 | 12 | 8 |
+| Architecture | 3 | 5 | 6 | — |
+| **Total** | **5** | **22** | **32** | **20** |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Plus 18 new edge/signal opportunities identified.
 
-## Learn More
+## 🔄 Workflow
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Dorothy scans trendline repo (read-only)
+2. Findings logged in `audit-reports/`
+3. Proposals written in `proposals/`
+4. Seanny reviews → accepts or skips
+5. Accepted items → implementation prompt in `prompts/`
+6. Seanny feeds prompt to Claude on main repo
