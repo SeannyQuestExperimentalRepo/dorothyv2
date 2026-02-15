@@ -3,13 +3,13 @@ import "server-only";
 /**
  * Barttorvik T-Rank scraper with in-memory caching.
  *
- * Scrapes team efficiency ratings from barttorvik.com for NCAAMB
- * ensemble modeling (blended with KenPom).
+ * Uses Puppeteer headless browser to bypass Barttorvik's JS verification gate.
+ * Scrapes team efficiency ratings for NCAAMB ensemble modeling (blended with KenPom).
  *
  * Cache TTL: 6 hours.
  */
 
-import * as cheerio from "cheerio";
+import puppeteer from "puppeteer";
 import { prisma } from "./db";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -61,25 +61,124 @@ export async function getBarttovikRatings(
     return cached.data;
   }
 
-  const url = `https://barttorvik.com/trank.php?year=${y}&sort=&lastx=0&hession=All&shots=0&conyes=0&venue=All&type=All&mingames=0`;
+  const url = `https://barttorvik.com/trank.php?year=${y}`;
 
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    },
-    next: { revalidate: 0 },
-  });
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    });
 
-  if (!res.ok) {
-    throw new Error(`Barttorvik ${res.status}: ${await res.text().catch(() => "").then((t) => t.slice(0, 200))}`);
+    const page = await browser.newPage();
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    );
+
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
+    await page.waitForSelector("table tbody tr", { timeout: 15000 });
+
+    const ratings = await page.evaluate(() => {
+      const rows = document.querySelectorAll("table tbody tr");
+      const data: Array<{
+        rank: number;
+        team: string;
+        conf: string;
+        record: string;
+        adjOE: number;
+        adjDE: number;
+        barthag: number;
+        adjT: number;
+      }> = [];
+
+      rows.forEach((row) => {
+        const cells = row.querySelectorAll("td");
+        if (cells.length < 10) return;
+
+        const rank = parseInt(cells[0]?.textContent?.trim() ?? "", 10);
+        if (isNaN(rank)) return;
+
+        // Team name: get <a> link text, strip the lowrow span (contains last game info)
+        const teamLink = cells[1]?.querySelector("a");
+        let team = "";
+        if (teamLink) {
+          const clone = teamLink.cloneNode(true) as HTMLElement;
+          clone.querySelectorAll(".lowrow").forEach((s) => s.remove());
+          team = clone.textContent?.trim() ?? "";
+        }
+        if (!team) return;
+
+        const conf =
+          cells[2]?.querySelector("a")?.textContent?.trim() ??
+          cells[2]?.textContent?.trim() ??
+          "";
+
+        // Record: also strip lowrow spans
+        const recordEl = cells[4]?.querySelector("a");
+        let record = "";
+        if (recordEl) {
+          const rc = recordEl.cloneNode(true) as HTMLElement;
+          rc.querySelectorAll(".lowrow").forEach((s) => s.remove());
+          record = rc.textContent?.trim() ?? "";
+        }
+
+        // Stat values: main number is before <br>/<span class="lowrow">
+        function getStatValue(cell: Element | null): number {
+          const html = cell?.innerHTML ?? "";
+          const match = html.match(/^([\d.+-]+)/);
+          return match ? parseFloat(match[1]) : NaN;
+        }
+
+        const adjOE = getStatValue(cells[5]);
+        const adjDE = getStatValue(cells[6]);
+        const barthag = getStatValue(cells[7]);
+        const adjT = getStatValue(cells[8]);
+
+        data.push({ rank, team, conf, record, adjOE, adjDE, barthag, adjT });
+      });
+
+      return data;
+    });
+
+    const map = new Map<string, BarttovikRating>();
+
+    for (const r of ratings) {
+      const recordMatch = r.record.match(/(\d+)-(\d+)/);
+      const wins = recordMatch ? parseInt(recordMatch[1], 10) : 0;
+      const losses = recordMatch ? parseInt(recordMatch[2], 10) : 0;
+      const rating = r.adjOE - r.adjDE;
+
+      map.set(r.team, {
+        rank: r.rank,
+        teamName: r.team,
+        conference: r.conf,
+        rating,
+        adjOE: r.adjOE,
+        adjDE: r.adjDE,
+        barthag: r.barthag,
+        adjTempo: r.adjT,
+        luck: 0, // Not reliably parsed from this table layout
+        sos: 0, // Not reliably parsed from this table layout
+        wins,
+        losses,
+      });
+    }
+
+    ratingsCacheBySeason.set(y, { data: map, fetchedAt: now });
+    console.log(`[barttorvik] Scraped ${map.size} T-Rank ratings for ${y}`);
+    return map;
+  } catch (err) {
+    console.error(`[barttorvik] Scrape failed:`, err);
+    // Return cached data if available (even if stale)
+    const stale = ratingsCacheBySeason.get(y);
+    if (stale) {
+      console.warn(`[barttorvik] Returning stale cache from ${new Date(stale.fetchedAt).toISOString()}`);
+      return stale.data;
+    }
+    return new Map();
+  } finally {
+    if (browser) await browser.close();
   }
-
-  const html = await res.text();
-  const map = parseBarttovikHTML(html);
-
-  ratingsCacheBySeason.set(y, { data: map, fetchedAt: now });
-  console.log(`[barttorvik] Fetched ${map.size} T-Rank ratings for ${y}`);
-  return map;
 }
 
 /**
@@ -185,61 +284,6 @@ export function signalBarttovikEnsemble(
   const label = `Ensemble edge ${blendedEdge > 0 ? "+" : ""}${blendedEdge.toFixed(1)} (KP ${kenpomEdge.toFixed(1)} / BT ${barttovikEdge.toFixed(1)})`;
 
   return { blendedEdge, direction, magnitude, confidence, label, strength };
-}
-
-// ─── HTML Parser ────────────────────────────────────────────────────────────
-
-function parseBarttovikHTML(html: string): Map<string, BarttovikRating> {
-  const $ = cheerio.load(html);
-  const map = new Map<string, BarttovikRating>();
-
-  // The main table typically has id "trank-table" or is the first large table
-  const rows = $("table#trank-table tbody tr, table.pointed tbody tr, table tbody tr");
-
-  rows.each((_, row) => {
-    const cells = $(row).find("td");
-    if (cells.length < 10) return;
-
-    const rankText = $(cells[0]).text().trim();
-    const rank = parseInt(rankText, 10);
-    if (isNaN(rank)) return;
-
-    const teamName = $(cells[1]).text().trim().replace(/\s+\d+$/, ""); // strip seed numbers
-    const conference = $(cells[2]).text().trim();
-
-    // Parse record (e.g. "25-8")
-    const recordText = $(cells[3]).text().trim();
-    const recordMatch = recordText.match(/(\d+)-(\d+)/);
-    const wins = recordMatch ? parseInt(recordMatch[1], 10) : 0;
-    const losses = recordMatch ? parseInt(recordMatch[2], 10) : 0;
-
-    const adjOE = parseFloat($(cells[4]).text().trim()) || 0;
-    const adjDE = parseFloat($(cells[5]).text().trim()) || 0;
-    const barthag = parseFloat($(cells[6]).text().trim()) || 0;
-    const adjTempo = parseFloat($(cells[7]).text().trim()) || 0;
-    const luck = parseFloat($(cells[8]).text().trim()) || 0;
-    const sos = parseFloat($(cells[9]).text().trim()) || 0;
-    const rating = adjOE - adjDE; // T-Rank rating is efficiency margin
-
-    if (teamName) {
-      map.set(teamName, {
-        rank,
-        teamName,
-        conference,
-        rating,
-        adjOE,
-        adjDE,
-        barthag,
-        adjTempo,
-        luck,
-        sos,
-        wins,
-        losses,
-      });
-    }
-  });
-
-  return map;
 }
 
 // ─── Season Helper ──────────────────────────────────────────────────────────
