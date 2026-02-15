@@ -6,6 +6,13 @@ All activity tracked with timestamps. Pushed daily.
 
 ## 2026-02-15 (Sunday)
 
+### ~17:42 CST
+- **3 critical bug fix prompts written** to `prompts/`:
+  - `CRITICAL-BUG-FIX-NFL-WEEK.md` — Fix hardcoded `week: 1` in `computeNflRidgeEdge()` (BUG-001)
+  - `CRITICAL-BUG-FIX-JEST-IMPORTS.md` — Fix missing `@jest/globals` imports across test files (BUG-002/004)
+  - `CRITICAL-BUG-FIX-REDIS-MOCKS.md` — Fix `@upstash/redis` mock failure in ESM tests (BUG-003)
+- All prompts are copy-paste ready with exact file references, implementation code, and success criteria
+
 ### ~16:00 CST
 - **Phase 3 mega-prompt written:** `prompts/PHASE-3-MODEL-ACCURACY.md`
 - 9 tasks covering model accuracy improvements: Ridge regression for NFL/NBA/NCAAF, dynamic HCA, CLV tracking, ATS refinement, new edge signals, tournament validation, signal weight optimization + performance attribution
