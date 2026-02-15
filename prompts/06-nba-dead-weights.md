@@ -6,9 +6,10 @@
 
 ---
 
-## Copy-paste this into Claude:
+> **COPY EVERYTHING BELOW THIS LINE INTO CLAUDE**
 
-```
+---
+
 Fix the NBA dead signal weight problem in pick-engine.ts. Multiple signals never fire for NBA, but their weights still count toward the maximum possible score, deflating all NBA confidence scores.
 
 **Dead signals for NBA:**
@@ -24,18 +25,16 @@ Fix the NBA dead signal weight problem in pick-engine.ts. Multiple signals never
 ## Part 1: Enable NBA rest days signal (it's the #1 situational edge in NBA)
 
 In `signalRestDays` (around line 656), change:
-```typescript
-if (sport !== "NCAAMB") {
-  return { category: "restDays", direction: "neutral", ... };
-}
-```
+
+    if (sport !== "NCAAMB") {
+      return { category: "restDays", direction: "neutral", ... };
+    }
 
 To handle NBA:
-```typescript
-if (sport !== "NCAAMB" && sport !== "NBA") {
-  return { category: "restDays", direction: "neutral", ... };
-}
-```
+
+    if (sport !== "NCAAMB" && sport !== "NBA") {
+      return { category: "restDays", direction: "neutral", ... };
+    }
 
 Then add NBA-specific B2B logic. NBA B2B is even MORE impactful than NCAAMB:
 - Team on B2B: historically covers ~5% less ATS
@@ -48,32 +47,28 @@ The NCAAMB B2B detection logic (checking last game within 36h) works for NBA too
 
 Since reverse lookup doesn't support NBA yet (no trend angles), redistribute the 0.20 weight to signals that DO fire:
 
-```typescript
-NBA: {
-  modelEdge: 0.20,      // was 0.15, +0.05
-  seasonATS: 0.20,       // was 0.15, +0.05
-  trendAngles: 0.00,     // was 0.20, disabled until NBA reverse lookup exists
-  recentForm: 0.20,      // was 0.15, +0.05
-  h2h: 0.05,
-  situational: 0.05,
-  restDays: 0.15,        // was 0.10, +0.05 (now that it fires)
-  eloEdge: 0.05,
-  nbaFourFactors: 0.10,
-},
-```
+    NBA: {
+      modelEdge: 0.20,      // was 0.15, +0.05
+      seasonATS: 0.20,       // was 0.15, +0.05
+      trendAngles: 0.00,     // was 0.20, disabled until NBA reverse lookup exists
+      recentForm: 0.20,      // was 0.15, +0.05
+      h2h: 0.05,
+      situational: 0.05,
+      restDays: 0.15,        // was 0.10, +0.05 (now that it fires)
+      eloEdge: 0.05,
+      nbaFourFactors: 0.10,
+    },
 
 Do the same for NBA O/U weights — redistribute trendAngles: 0.20 to other active signals.
 
 ## Part 3: Fix the `|| 0.1` fallback
 
 In `computeConvergenceScore` (around line 1898):
-```typescript
-// Before:
-const w = weights[signal.category] || 0.1;
 
-// After:  
-const w = weights[signal.category] ?? 0.1;
-```
+    // Before:
+    const w = weights[signal.category] || 0.1;
+    
+    // After:  
+    const w = weights[signal.category] ?? 0.1;
 
 This prevents explicit 0.0 weights (like trendAngles: 0.00) from accidentally getting 0.1.
-```

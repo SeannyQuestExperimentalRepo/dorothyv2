@@ -6,9 +6,10 @@
 
 ---
 
-## Copy-paste this into Claude:
+> **COPY EVERYTHING BELOW THIS LINE INTO CLAUDE**
 
-```
+---
+
 Add error.tsx files to all routes that are missing them. Currently only 4 routes have error boundaries (bets, game, odds, today, trends). The rest show the default Next.js error screen when something goes wrong.
 
 **Routes needing error.tsx:**
@@ -37,39 +38,37 @@ Use the existing error boundary pattern from `src/app/bets/error.tsx` or `src/ap
 6. Log the error to Sentry via `trackError` from `src/lib/error-tracking.ts`
 
 Template:
-```tsx
-"use client";
 
-import { useEffect } from "react";
-import { trackError } from "@/lib/error-tracking";
-
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  useEffect(() => {
-    trackError(error, { route: "PAGE_NAME" });
-  }, [error]);
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-      <h2 className="text-xl font-semibold">Something went wrong</h2>
-      <p className="text-muted-foreground">
-        We couldn't load this page. Please try again.
-      </p>
-      <button
-        onClick={reset}
-        className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-      >
-        Try Again
-      </button>
-    </div>
-  );
-}
-```
+    "use client";
+    
+    import { useEffect } from "react";
+    import { trackError } from "@/lib/error-tracking";
+    
+    export default function Error({
+      error,
+      reset,
+    }: {
+      error: Error & { digest?: string };
+      reset: () => void;
+    }) {
+      useEffect(() => {
+        trackError(error, { route: "PAGE_NAME" });
+      }, [error]);
+    
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+          <h2 className="text-xl font-semibold">Something went wrong</h2>
+          <p className="text-muted-foreground">
+            We couldn't load this page. Please try again.
+          </p>
+          <button
+            onClick={reset}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            Try Again
+          </button>
+        </div>
+      );
+    }
 
 Replace PAGE_NAME with the actual route name in each file. Check the existing error.tsx files first to match the exact styling pattern used.
-```

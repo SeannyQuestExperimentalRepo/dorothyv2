@@ -6,35 +6,34 @@
 
 ---
 
-## Copy-paste this into Claude:
+> **COPY EVERYTHING BELOW THIS LINE INTO CLAUDE**
 
-```
+---
+
 Fix the NCAAF SP+ edge lookup to use canonical names instead of raw game names.
 
 **File:** `src/lib/pick-engine.ts` (around line 2434-2441)
 
 Current code:
-```typescript
-sport === "NCAAF" && cfbdRatings && cfbdRatings.size > 0
-  ? computeSPEdge(
-      cfbdRatings,
-      game.homeTeam,   // ❌ raw ESPN name
-      game.awayTeam,   // ❌ raw ESPN name
-      game.spread,
-      game.overUnder
-    )
-```
+
+    sport === "NCAAF" && cfbdRatings && cfbdRatings.size > 0
+      ? computeSPEdge(
+          cfbdRatings,
+          game.homeTeam,   // ❌ raw ESPN name
+          game.awayTeam,   // ❌ raw ESPN name
+          game.spread,
+          game.overUnder
+        )
 
 **Fix:** Use the already-resolved canonical names:
-```typescript
-  ? computeSPEdge(
-      cfbdRatings,
-      canonHome,        // ✅ already resolved above
-      canonAway,        // ✅ already resolved above
-      game.spread,
-      game.overUnder
-    )
-```
+
+      ? computeSPEdge(
+          cfbdRatings,
+          canonHome,        // ✅ already resolved above
+          canonAway,        // ✅ already resolved above
+          game.spread,
+          game.overUnder
+        )
 
 But there's a second issue: the CFBD ratings map in `src/lib/cfbd.ts` — check how `getCFBDRatings()` keys its map. If it uses CFBD-native names, you also need to re-key through the team resolver (same pattern as `getKenpomRatings()` in kenpom.ts).
 
@@ -50,4 +49,3 @@ Common NCAAF name mismatches to verify:
 - "UL Monroe" vs "Louisiana Monroe"
 - "App State" vs "Appalachian State"
 - "UConn" vs "Connecticut"
-```

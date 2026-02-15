@@ -6,9 +6,10 @@
 
 ---
 
-## Copy-paste this into Claude:
+> **COPY EVERYTHING BELOW THIS LINE INTO CLAUDE**
 
-```
+---
+
 Fix the weather double-counting bug in the NFL O/U pick engine.
 
 **Problem:** For NFL O/U picks, weather effects are applied twice:
@@ -31,16 +32,13 @@ Make sure the weight maps still reference the correct category name. Search for 
 
 **Fix — Option B (simpler):** Don't push `weatherSignal` into `ouSignals` for NFL since `h2hWeather` already covers it:
 
-```typescript
-// Around line 2533
-if (weatherSignal && sport !== "NFL" && sport !== "NCAAF") {
-  ouSignals.push(weatherSignal);
-}
-```
+    // Around line 2533
+    if (weatherSignal && sport !== "NFL" && sport !== "NCAAF") {
+      ouSignals.push(weatherSignal);
+    }
 
 But this is worse because the dedicated weather module likely has better data than the inline checks.
 
 **Also check NCAAF:** The same double-counting may apply to NCAAF — `signalH2HWeatherOU` has weather logic for non-NCAAMB sports AND a dedicated `weatherSignal` is pushed for NCAAF.
 
 Go with Option A. Update all references.
-```
