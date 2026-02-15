@@ -62,33 +62,36 @@ Build a pristine, acquisition-worthy sports betting analytics platform with a ve
 | 28 | tournament-under-boost | ⬜ | NCAA tournament 80.5% UNDER auto-boost |
 | 29 | nba-rest-signal | ⬜ | Enable NBA rest day signal |
 | 30 | public-track-record | ⬜ | Verified, timestamped, auditable results page |
+| 31 | nfl-regression-model | ⬜ | Ridge regression from EPA data (replace crude power rating) |
+| 32 | nba-regression-model | ⬜ | Ridge regression from Four Factors + net rating |
+| 33 | ncaaf-regression-model | ⬜ | Ridge regression from SP+ + returning production + recruiting |
 
 ### Phase 4: Market Signals (The Moat)
 *Signals competitors don't have. Hard to replicate.*
 
 | # | Prompt | Status | What |
 |---|--------|--------|------|
-| 31 | line-movement-detection | ⬜ | Track line moves from OddsSnapshot history |
-| 32 | steam-move-alerts | ⬜ | Detect sharp money / reverse line movement |
-| 33 | public-betting-pct | ⬜ | Fade the public signal |
-| 34 | clv-meta-signal | ⬜ | Use CLV as a model quality feedback loop |
-| 35 | referee-tendencies | ⬜ | NBA ref impact on totals (2-5% edge) |
-| 36 | altitude-hca | ⬜ | KenPom altitude data for HCA adjustment |
+| 34 | line-movement-detection | ⬜ | Track line moves from OddsSnapshot history |
+| 35 | steam-move-alerts | ⬜ | Detect sharp money / reverse line movement |
+| 36 | public-betting-pct | ⬜ | Fade the public signal |
+| 37 | clv-meta-signal | ⬜ | Use CLV as a model quality feedback loop |
+| 38 | referee-tendencies | ⬜ | NBA ref impact on totals (2-5% edge) |
+| 39 | altitude-hca | ⬜ | KenPom altitude data for HCA adjustment |
 
 ### Phase 5: Polish for Launch
 *Every pixel, every interaction, every edge case.*
 
 | # | Prompt | Status | What |
 |---|--------|--------|------|
-| 37 | seo-metadata | ⬜ | Meta tags on all pages |
-| 38 | accessibility-pass | ⬜ | ARIA, keyboard nav, screen readers |
-| 39 | loading-skeletons | ⬜ | Remaining 10 routes |
-| 40 | nba-sync-pipeline | ⬜ | Complete NBA game recording |
-| 41 | mobile-optimization | ⬜ | Responsive polish pass |
-| 42 | csp-hardening | ⬜ | Remove unsafe-eval, add nonces |
-| 43 | api-pagination | ⬜ | Paginate all list endpoints |
-| 44 | odds-staleness-indicator | ⬜ | Show users when odds are stale |
-| 45 | db-cleanup-cron | ⬜ | Prune old OddsSnapshots, StripeEvents |
+| 40 | seo-metadata | ⬜ | Meta tags on all pages |
+| 41 | accessibility-pass | ⬜ | ARIA, keyboard nav, screen readers |
+| 42 | loading-skeletons | ⬜ | Remaining 10 routes |
+| 43 | nba-sync-pipeline | ⬜ | Complete NBA game recording |
+| 44 | mobile-optimization | ⬜ | Responsive polish pass |
+| 45 | csp-hardening | ⬜ | Remove unsafe-eval, add nonces |
+| 46 | api-pagination | ⬜ | Paginate all list endpoints |
+| 47 | odds-staleness-indicator | ⬜ | Show users when odds are stale |
+| 48 | db-cleanup-cron | ⬜ | Prune old OddsSnapshots, StripeEvents |
 
 ---
 
