@@ -6,6 +6,11 @@ All activity tracked with timestamps. Pushed daily.
 
 ## 2026-02-15 (Sunday)
 
+### ~16:00 CST
+- **Phase 3 mega-prompt written:** `prompts/PHASE-3-MODEL-ACCURACY.md`
+- 9 tasks covering model accuracy improvements: Ridge regression for NFL/NBA/NCAAF, dynamic HCA, CLV tracking, ATS refinement, new edge signals, tournament validation, signal weight optimization + performance attribution
+- Timeline: Feb 16–28 (before conference tournaments ~March 3)
+
 ### 04:58 - 08:58 CST
 - Heartbeat checks — nothing requiring attention
 
