@@ -125,9 +125,23 @@ All activity tracked with timestamps. Pushed daily.
   - Injury impact scoring: positional value × status multiplier → point adjustment
   - NFL weights restructured with new restDays and injuries signals
 
+### 13:41 CST
+- **Switched to Sonnet** — per user request for faster/cheaper operation
+- **Phase 1.5 implementation status:** Halfway done (tournament readiness)
+
+### 13:58 CST
+- **Phase 2 mega-prompt written:** PHASE-2-TESTS-ARCHITECTURE.md (22KB, 9 tasks)
+  - Unit tests for pick engine (22k lines untested is risky for tournament)
+  - Split pick-engine.ts into modular architecture  
+  - Redis rate limiting + game cache
+  - Split cron jobs into 6 independent functions
+  - Sentry error tracking + performance monitoring
+  - Integration tests for full pipeline
+  - Target: Complete by Feb 21 for 10-day validation before conference tournaments
+
 **Running totals:**
 - Findings: 5 critical, 22 high, 32 medium, 20 low (97 total)
 - Edge opportunities: 18 new signals identified
 - Bugs confirmed fixed in trendline: 1 (team name mismatch, commit 28246c9)
 - Proposals pending: 0
-- Prompts delivered: 2 (Phase 1.5 Tournament Readiness, Phase NFL Foundation)
+- Prompts delivered: 3 (Phase 1.5 Tournament Readiness, Phase NFL Foundation, Phase 2 Tests+Architecture)
