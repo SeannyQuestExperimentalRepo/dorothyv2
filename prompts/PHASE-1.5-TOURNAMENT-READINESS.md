@@ -1,5 +1,21 @@
 # Phase 1.5: NCAAMB Tournament Readiness
 
+> **⚠️ Context Budget Guide**
+> This prompt is ~22KB (~5.5k tokens). The main files Claude needs to read:
+> - `src/lib/pick-engine.ts` — 100KB (~25k tokens) ← THE big file
+> - `src/lib/kenpom.ts` — 11KB (~3k tokens)
+> - `src/lib/elo.ts` — 15KB (~4k tokens)
+> - `prisma/schema.prisma` — 35KB (~9k tokens)
+>
+> **Total estimated context: ~47k tokens (~24% of 200k)**
+>
+> If you're on Claude with project/repo context already loaded, you have plenty of room.
+> If pasting into a fresh chat, add these files to context first:
+> 1. `src/lib/pick-engine.ts` (required — nearly every task touches this)
+> 2. `prisma/schema.prisma` (needed for Task 12: closingLine fields)
+> 3. `src/lib/kenpom.ts` (needed for Tasks 9-10: FanMatch)
+> 4. `src/lib/elo.ts` (needed for Task 3: eloOU signal)
+
 This is tournament-readiness work for the trendline pick engine. Selection Sunday is **March 15, 2026** — we have ~4 weeks. This phase slots between Phase 1 (bug fixes, already merged) and Phase 2 (tests/architecture). Every change here targets the March Madness pipeline: weight rebalancing, tournament-specific logic, FanMatch cross-checks, stale odds protection, and closing line tracking.
 
 The codebase is `pick-engine.ts` (~3,095 lines) unless otherwise noted. All weight changes must sum to 1.0 for their respective signal group. Do each task in order — later tasks depend on earlier weight changes.

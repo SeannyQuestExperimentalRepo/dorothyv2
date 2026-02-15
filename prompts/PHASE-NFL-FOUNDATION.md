@@ -1,5 +1,20 @@
 # Phase NFL Foundation: From Napkin Math to Real Model
 
+> **⚠️ Context Budget Guide**
+> This prompt is ~21KB (~5.3k tokens). The main files Claude needs to read:
+> - `src/lib/pick-engine.ts` — 100KB (~25k tokens) ← NFL weights, signals, tiers
+> - `src/lib/nflverse.ts` — 27KB (~7k tokens) ← EPA aggregation
+> - `src/app/api/cron/daily-sync/route.ts` — 32KB (~8k tokens) ← NFL data sync
+> - `prisma/schema.prisma` — 35KB (~9k tokens) ← NFLTeamEPA model
+>
+> **Total estimated context: ~55k tokens (~28% of 200k)**
+>
+> If pasting into a fresh chat, add these files to context first:
+> 1. `src/lib/nflverse.ts` (required — Tasks 1-2 rewrite EPA + add regression)
+> 2. `src/lib/pick-engine.ts` (required — Tasks 3-7 touch NFL signals/weights/tiers)
+> 3. `prisma/schema.prisma` (needed for new fields)
+> 4. `src/app/api/cron/daily-sync/route.ts` (needed for Task 3: bye week data)
+
 The NFL pipeline currently has a C- grade. The "model" is `(avgMargin_home - avgMargin_away)/2 + 2.5` — literal napkin math. Defensive EPA is NULL in the database. Rest/bye weeks aren't modeled. Injuries are fetched but thrown away. This phase fixes the foundation.
 
 This is a big lift — 7 tasks, roughly in priority order. Each task stands alone, so you can commit after each one. The goal: get NFL to a functional B-grade model before the 2026 season.
