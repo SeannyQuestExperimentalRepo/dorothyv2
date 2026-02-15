@@ -302,10 +302,51 @@ barttovikSnapshots BarttovikSnapshot[]  @relation("BarttovikSnapshot")
 
 ---
 
+## Live Data Status (as of 2026-02-14)
+
+### BarttovikSnapshot — ✅ POPULATED
+- **358 rows** synced from barttorvik.com via Puppeteer headless scraper
+- 365 D-I teams scraped, 358 matched to DB Team records (7 unmatched due to naming inconsistencies)
+- Data includes: tRank, adjOE, adjDE, barthag, adjTempo, wins, losses
+- Top 5: Michigan (+37.7 net), Houston (+34.9), Arizona (+34.0), Florida (+33.5), Duke (+32.4)
+- Scraper bypasses Barttorvik's JS verification gate via Puppeteer + scroll-to-load for full 365-team table
+
+### EloRating — ✅ POPULATED
+- **1,850 total rows** across 3 sports:
+  - NCAAMB: 1,683 teams rated from 125,169 historical games
+  - NFL: 32 teams rated from 14,140 games
+  - NCAAF: 135 teams rated from 14,711 games
+- Uses FiveThirtyEight MOV multiplier formula
+- NCAAMB Top 5: Houston (2676), Michigan (2649), Duke (2637), Arizona (2625), Florida (2622)
+- NFL Top 5: Seattle (1754), Buffalo (1732), Philadelphia (1685), LA Rams (1677), Denver (1671)
+- NCAAF Top 5: Ohio State (2189), Georgia (2178), Alabama (2124), Oregon (2074), Notre Dame (2060)
+
+### NBATeamStats — ⏳ EMPTY (awaiting NBA season data)
+- Module built and compiles, fetches from NBA.com stats API
+- Will populate when `syncNBATeamStats()` runs during NBA season
+
+### NFLTeamEPA — ⏳ EMPTY (awaiting NFL season data)
+- Module built and compiles, downloads nflverse CSV from GitHub releases
+- Will populate when `syncNFLTeamEPA()` runs on Mondays during NFL season
+
+### NCAAFAdvancedStats — ⏳ EMPTY (awaiting NCAAF season data)
+- CFBD module expanded with 5 new endpoints
+- Will populate when `syncCFBDAdvancedStats()` runs on Sundays during NCAAF season
+
+### GameWeather — ⏳ EMPTY (no upcoming outdoor games fetched yet)
+- Open-Meteo integration built, fetches for NFL/NCAAF outdoor games
+- Will populate when `fetchWeatherForUpcomingGames()` runs in daily cron
+
+### Venue — ⏳ EMPTY (static data in code, not yet seeded to DB)
+- 32 NFL stadiums + 30 NBA arenas hardcoded in `venue.ts`
+- Used directly from code for travel/fatigue calculations
+- Can be seeded to DB table if needed for queries
+
+---
+
 ## What's NOT Done Yet (Future Work)
 
-1. **Seeding Elo ratings** — `recalculateElo()` needs to be run once to process all historical games and populate the EloRating table
-2. **Venue table seeding** — The Venue table is empty; static data is in `venue.ts` as a hardcoded map but hasn't been inserted into the DB table yet
-3. **Testing on live data** — All modules compile but haven't been tested against live APIs yet
-4. **KenPom pointdist/height signals** — Unused KenPom data already in DB (shooting profiles, experience/continuity) hasn't been wired into pick engine yet
-5. **Team naming unification** — Multiple mapping systems still exist; canonical naming prompt is in progress
+1. **Venue table seeding** — Static data is in `venue.ts` as a hardcoded map but hasn't been inserted into the DB table yet
+2. **Testing NBA/NFL modules on live data** — NBA Four Factors and NFL EPA modules compile but haven't been tested against live APIs (seasons not active)
+3. **KenPom pointdist/height signals** — Unused KenPom data already in DB (shooting profiles, experience/continuity) hasn't been wired into pick engine yet
+4. **Team naming unification** — Comprehensive fix prompt written (`TEAM-NAMING-FIX-PROMPT.md`): consolidate 5 mapping files (5,194 lines) into 1 resolver, clean 1,683 NCAAMB teams down to ~364 D-I, establish KenPom names as canonical standard. 7 Barttorvik teams unmatched due to this issue.
