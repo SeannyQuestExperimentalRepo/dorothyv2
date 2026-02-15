@@ -67,6 +67,11 @@ import { executeTeamReverseLookup } from "./reverse-lookup-engine";
 import { executePlayerPropQueryFromDB } from "./prop-trend-engine";
 import { getKenpomRatings, getKenpomFanMatch, lookupRating, type KenpomRating, type KenpomFanMatch } from "./kenpom";
 import { getCFBDRatings, lookupCFBDRating, type CFBDRating } from "./cfbd";
+import { getNBATeamStats, signalNBAFourFactors, type NBATeamAdvanced } from "./nba-stats";
+import { getNFLTeamEPA, signalNFLEPA, type NFLTeamEPAData } from "./nflverse";
+import { getBarttovikRatings, lookupBarttovikRating, signalBarttovikEnsemble } from "./barttorvik";
+import { getCurrentElo, signalEloEdge } from "./elo";
+import { getGameWeather, signalWeather, type WeatherData } from "./weather";
 import type { Sport } from "@prisma/client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -111,50 +116,56 @@ interface SignalResult {
 
 const SPREAD_WEIGHTS: Record<string, Record<string, number>> = {
   NCAAMB: {
-    modelEdge: 0.30,
-    seasonATS: 0.15,
-    trendAngles: 0.25,
-    recentForm: 0.10,  // v6: reduced from 0.15 to make room for marketEdge
-    h2h: 0.05,         // v6: reduced from 0.10 to make room for marketEdge
+    modelEdge: 0.35,
+    seasonATS: 0.10,
+    trendAngles: 0.20,
+    recentForm: 0.10,
+    h2h: 0.05,
     situational: 0.00,
     restDays: 0.05,
-    marketEdge: 0.10,  // v6: KenPom WP vs moneyline implied probability
+    marketEdge: 0.10,
+    eloEdge: 0.05,
   },
   NFL: {
-    modelEdge: 0.20,
-    seasonATS: 0.15,
-    trendAngles: 0.25,
-    recentForm: 0.20,
-    h2h: 0.10,
-    situational: 0.10,
-  },
-  NCAAF: {
-    modelEdge: 0.30,     // SP+ efficiency ratings (up from 0.20 with power ratings)
-    seasonATS: 0.15,
+    modelEdge: 0.30,
+    seasonATS: 0.10,
     trendAngles: 0.20,
     recentForm: 0.15,
-    h2h: 0.10,
+    h2h: 0.05,
     situational: 0.10,
+    eloEdge: 0.05,
+    weather: 0.05,
+  },
+  NCAAF: {
+    modelEdge: 0.35,
+    seasonATS: 0.10,
+    trendAngles: 0.15,
+    recentForm: 0.15,
+    h2h: 0.05,
+    situational: 0.10,
+    eloEdge: 0.05,
+    weather: 0.05,
   },
   NBA: {
-    modelEdge: 0.25,
-    seasonATS: 0.15,
-    trendAngles: 0.25,
+    modelEdge: 0.30,
+    seasonATS: 0.10,
+    trendAngles: 0.20,
     recentForm: 0.15,
     h2h: 0.05,
     situational: 0.05,
     restDays: 0.10,
+    eloEdge: 0.05,
   },
 };
 
 const OU_WEIGHTS: Record<string, Record<string, number>> = {
   NCAAMB: {
-    modelEdge: 0.35, // v7: OLS regression predicted total (69.3% accuracy, +32% ROI)
+    modelEdge: 0.35,
     seasonOU: 0.12,
     trendAngles: 0.18,
     recentForm: 0.08,
     h2hWeather: 0.12,
-    tempoDiff: 0.15, // v5: tempo mismatch signal (5★ O/U +2.9% ROI)
+    tempoDiff: 0.15,
   },
   NFL: {
     modelEdge: 0.20,
@@ -164,19 +175,20 @@ const OU_WEIGHTS: Record<string, Record<string, number>> = {
     h2hWeather: 0.25,
   },
   NCAAF: {
-    modelEdge: 0.30,     // SP+ efficiency ratings (up from 0.20 with power ratings)
+    modelEdge: 0.30,
     seasonOU: 0.15,
     trendAngles: 0.20,
     recentForm: 0.15,
     h2hWeather: 0.20,
   },
   NBA: {
-    modelEdge: 0.25,
-    seasonOU: 0.20,
-    trendAngles: 0.20,
-    recentForm: 0.15,
+    modelEdge: 0.30,
+    seasonOU: 0.15,
+    trendAngles: 0.15,
+    recentForm: 0.10,
     h2hWeather: 0.05,
-    tempoDiff: 0.15,
+    tempoDiff: 0.20,
+    eloEdge: 0.05,
   },
 };
 
@@ -2022,6 +2034,15 @@ export async function generateDailyPicks(
     }
   }
 
+  // Load new data sources (per sport, only when relevant)
+  const nbaStats: Map<string, NBATeamAdvanced> | null = sport === "NBA"
+    ? await getNBATeamStats().catch(() => null) : null;
+  const nflEpa: Map<string, NFLTeamEPAData> | null = sport === "NFL"
+    ? await getNFLTeamEPA().catch(() => null) : null;
+  const barttovikRatings = sport === "NCAAMB"
+    ? await getBarttovikRatings().catch(() => null) : null;
+  const eloRatings: Map<string, number> = await getCurrentElo(sport).catch(() => new Map());
+
   const allPicks: GeneratedPick[] = [];
   const batchSize = 4;
 
@@ -2078,8 +2099,78 @@ export async function generateDailyPicks(
               signalMoneylineEdge(game.moneylineHome, game.moneylineAway, gameFM?.HomeWP ?? null),
             ];
 
+            // ── New signals: Elo edge (all sports) ──
+            const homeElo = eloRatings.get(canonHome) ?? eloRatings.get(game.homeTeam);
+            const awayElo = eloRatings.get(canonAway) ?? eloRatings.get(game.awayTeam);
+            if (homeElo != null && awayElo != null) {
+              spreadSignals.push(signalEloEdge(homeElo, awayElo, game.spread, sport));
+            }
+
+            // ── NBA Four Factors (NBA only) ──
+            if (sport === "NBA" && nbaStats && game.spread != null && game.overUnder != null) {
+              const homeNBA = nbaStats.get(canonHome) ?? nbaStats.get(game.homeTeam);
+              const awayNBA = nbaStats.get(canonAway) ?? nbaStats.get(game.awayTeam);
+              if (homeNBA && awayNBA) {
+                const ff = signalNBAFourFactors(homeNBA, awayNBA, game.spread, game.overUnder);
+                spreadSignals.push(ff.spreadSignal);
+              }
+            }
+
+            // ── NFL EPA (NFL only) ──
+            if (sport === "NFL" && nflEpa && game.spread != null && game.overUnder != null) {
+              const homeEPA = nflEpa.get(canonHome) ?? nflEpa.get(game.homeTeam);
+              const awayEPA = nflEpa.get(canonAway) ?? nflEpa.get(game.awayTeam);
+              if (homeEPA && awayEPA) {
+                const epa = signalNFLEPA(homeEPA, awayEPA, game.spread, game.overUnder);
+                spreadSignals.push(epa.spread);
+              }
+            }
+
+            // ── Weather signal (NFL/NCAAF outdoor games) ──
+            if ((sport === "NFL" || sport === "NCAAF")) {
+              const weather = await getGameWeather(sport, game.homeTeam, game.gameDate).catch(() => null);
+              if (weather) {
+                spreadSignals.push(signalWeather(weather, sport));
+              }
+            }
+
+            // ── Barttorvik ensemble (NCAAMB — blend with KenPom) ──
+            if (sport === "NCAAMB" && barttovikRatings && game.spread != null) {
+              const bartHome = lookupBarttovikRating(barttovikRatings, game.homeTeam);
+              const bartAway = lookupBarttovikRating(barttovikRatings, game.awayTeam);
+              if (bartHome && bartAway && modelPrediction.spread.direction !== "neutral") {
+                const bartEdge = (bartHome.barthag - bartAway.barthag) * 30 + (game.spread ?? 0);
+                const kenpomEdge = modelPrediction.spread.magnitude * (modelPrediction.spread.direction === "home" ? 1 : -1);
+                const ensemble = signalBarttovikEnsemble(kenpomEdge, bartEdge);
+                spreadSignals.push({
+                  category: "eloEdge", // reuse weight key for barttorvik blending
+                  direction: ensemble.direction,
+                  magnitude: ensemble.magnitude,
+                  confidence: ensemble.confidence,
+                  label: ensemble.label,
+                  strength: ensemble.strength,
+                });
+              }
+            }
+
+            // ── Graceful weight fallback: redistribute missing signal weights to modelEdge ──
+            const adjustedSpreadWeights = { ...sportWeightsSpread };
+            {
+              const activeCategories = new Set(spreadSignals.map(s => s.category));
+              let redistributed = 0;
+              for (const [cat, w] of Object.entries(adjustedSpreadWeights)) {
+                if (cat !== "modelEdge" && !activeCategories.has(cat) && w > 0) {
+                  redistributed += w;
+                  adjustedSpreadWeights[cat] = 0;
+                }
+              }
+              if (redistributed > 0) {
+                adjustedSpreadWeights.modelEdge = (adjustedSpreadWeights.modelEdge ?? 0) + redistributed;
+              }
+            }
+
             // v5: skip convergence bonus + require min 3 active signals
-            const result = computeConvergenceScore(spreadSignals, sportWeightsSpread, true, 3);
+            const result = computeConvergenceScore(spreadSignals, adjustedSpreadWeights, true, 3);
             const confidence = result.score >= 85 ? 5 : result.score >= 70 ? 4 : 0;
 
             if (confidence === 0) {
@@ -2129,8 +2220,54 @@ export async function generateDailyPicks(
               ouSignals.push(signalTempoDiff(kenpomRatings, game.homeTeam, game.awayTeam));
             }
 
+            // ── New O/U signals ──
+            // Elo edge for O/U (NBA only — included in OU_WEIGHTS)
+            if (sport === "NBA") {
+              const homeEloOU = eloRatings.get(canonHome) ?? eloRatings.get(game.homeTeam);
+              const awayEloOU = eloRatings.get(canonAway) ?? eloRatings.get(game.awayTeam);
+              if (homeEloOU != null && awayEloOU != null) {
+                ouSignals.push(signalEloEdge(homeEloOU, awayEloOU, game.spread, sport));
+              }
+            }
+
+            // NBA Four Factors O/U signal
+            if (sport === "NBA" && nbaStats && game.spread != null && game.overUnder != null) {
+              const homeNBA = nbaStats.get(canonHome) ?? nbaStats.get(game.homeTeam);
+              const awayNBA = nbaStats.get(canonAway) ?? nbaStats.get(game.awayTeam);
+              if (homeNBA && awayNBA) {
+                const ff = signalNBAFourFactors(homeNBA, awayNBA, game.spread, game.overUnder);
+                ouSignals.push(ff.ouSignal);
+              }
+            }
+
+            // NFL EPA O/U signal
+            if (sport === "NFL" && nflEpa && game.spread != null && game.overUnder != null) {
+              const homeEPA = nflEpa.get(canonHome) ?? nflEpa.get(game.homeTeam);
+              const awayEPA = nflEpa.get(canonAway) ?? nflEpa.get(game.awayTeam);
+              if (homeEPA && awayEPA) {
+                const epa = signalNFLEPA(homeEPA, awayEPA, game.spread, game.overUnder);
+                ouSignals.push(epa.ou);
+              }
+            }
+
+            // ── Graceful weight fallback for O/U ──
+            const adjustedOUWeights = { ...sportWeightsOU };
+            {
+              const activeOUCategories = new Set(ouSignals.map(s => s.category));
+              let redistributedOU = 0;
+              for (const [cat, w] of Object.entries(adjustedOUWeights)) {
+                if (cat !== "modelEdge" && !activeOUCategories.has(cat) && w > 0) {
+                  redistributedOU += w;
+                  adjustedOUWeights[cat] = 0;
+                }
+              }
+              if (redistributedOU > 0) {
+                adjustedOUWeights.modelEdge = (adjustedOUWeights.modelEdge ?? 0) + redistributedOU;
+              }
+            }
+
             // v5: skip O/U convergence bonus + require min 3 active signals
-            const result = computeConvergenceScore(ouSignals, sportWeightsOU, true, 3);
+            const result = computeConvergenceScore(ouSignals, adjustedOUWeights, true, 3);
 
             // v9: NCAAMB O/U uses PIT-calibrated tier gates (config #26).
             // Honest walk-forward backtest, monotonic in 12/13 seasons.

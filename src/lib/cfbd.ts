@@ -25,6 +25,14 @@ export interface CFBDRating {
   specialTeams: { rating: number } | null;
 }
 
+export interface CFBDPPAData {
+  team: string;
+  overall: number;
+  passing: number;
+  rushing: number;
+  defense: number;
+}
+
 // ─── Cache ──────────────────────────────────────────────────────────────────
 
 interface CacheEntry<T> {
@@ -34,9 +42,17 @@ interface CacheEntry<T> {
 
 const RATINGS_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const ratingsCacheBySeason = new Map<number, CacheEntry<Map<string, CFBDRating>>>();
+const eloCacheBySeason = new Map<number, CacheEntry<Map<string, number>>>();
+const talentCacheBySeason = new Map<number, CacheEntry<Map<string, number>>>();
+const ppaCacheBySeason = new Map<number, CacheEntry<Map<string, CFBDPPAData>>>();
+const srsCacheBySeason = new Map<number, CacheEntry<Map<string, number>>>();
 
 export function clearCFBDCache(): void {
   ratingsCacheBySeason.clear();
+  eloCacheBySeason.clear();
+  talentCacheBySeason.clear();
+  ppaCacheBySeason.clear();
+  srsCacheBySeason.clear();
 }
 
 // ─── API Helpers ────────────────────────────────────────────────────────────
@@ -192,6 +208,197 @@ const ESPN_TO_CFBD: Record<string, string> = {
 function normalizeToCFBD(espnName: string): string {
   if (ESPN_TO_CFBD[espnName]) return ESPN_TO_CFBD[espnName];
   return espnName;
+}
+
+// ─── Elo Ratings ────────────────────────────────────────────────────────────
+
+export async function getCFBDElo(
+  season?: number,
+): Promise<Map<string, number>> {
+  const y = season ?? getCurrentCFBDSeason();
+  const now = Date.now();
+
+  const cached = eloCacheBySeason.get(y);
+  if (cached && now - cached.fetchedAt < RATINGS_TTL_MS) return cached.data;
+
+  const raw = await fetchCFBD<Array<{ team: string; elo: number }>>(
+    "/ratings/elo",
+    { year: String(y) },
+  );
+
+  const map = new Map<string, number>();
+  for (const r of raw) map.set(r.team, r.elo);
+
+  eloCacheBySeason.set(y, { data: map, fetchedAt: now });
+  console.log(`[cfbd] Fetched ${map.size} Elo ratings for ${y}`);
+  return map;
+}
+
+// ─── Talent Composite ───────────────────────────────────────────────────────
+
+export async function getCFBDTalent(
+  season?: number,
+): Promise<Map<string, number>> {
+  const y = season ?? getCurrentCFBDSeason();
+  const now = Date.now();
+
+  const cached = talentCacheBySeason.get(y);
+  if (cached && now - cached.fetchedAt < RATINGS_TTL_MS) return cached.data;
+
+  const raw = await fetchCFBD<Array<{ school: string; talent: number }>>(
+    "/talent",
+    { year: String(y) },
+  );
+
+  const map = new Map<string, number>();
+  for (const r of raw) map.set(r.school, r.talent);
+
+  talentCacheBySeason.set(y, { data: map, fetchedAt: now });
+  console.log(`[cfbd] Fetched ${map.size} talent composites for ${y}`);
+  return map;
+}
+
+// ─── PPA (Predicted Points Added) ───────────────────────────────────────────
+
+export async function getCFBDPPA(
+  season?: number,
+): Promise<Map<string, CFBDPPAData>> {
+  const y = season ?? getCurrentCFBDSeason();
+  const now = Date.now();
+
+  const cached = ppaCacheBySeason.get(y);
+  if (cached && now - cached.fetchedAt < RATINGS_TTL_MS) return cached.data;
+
+  const raw = await fetchCFBD<
+    Array<{
+      team: string;
+      offense: { overall: number; passing: number; rushing: number };
+      defense: { overall: number };
+    }>
+  >("/ppa/teams", { year: String(y) });
+
+  const map = new Map<string, CFBDPPAData>();
+  for (const r of raw) {
+    map.set(r.team, {
+      team: r.team,
+      overall: r.offense?.overall ?? 0,
+      passing: r.offense?.passing ?? 0,
+      rushing: r.offense?.rushing ?? 0,
+      defense: r.defense?.overall ?? 0,
+    });
+  }
+
+  ppaCacheBySeason.set(y, { data: map, fetchedAt: now });
+  console.log(`[cfbd] Fetched ${map.size} PPA records for ${y}`);
+  return map;
+}
+
+// ─── SRS (Simple Rating System) ─────────────────────────────────────────────
+
+export async function getCFBDSRS(
+  season?: number,
+): Promise<Map<string, number>> {
+  const y = season ?? getCurrentCFBDSeason();
+  const now = Date.now();
+
+  const cached = srsCacheBySeason.get(y);
+  if (cached && now - cached.fetchedAt < RATINGS_TTL_MS) return cached.data;
+
+  const raw = await fetchCFBD<Array<{ team: string; rating: number }>>(
+    "/ratings/srs",
+    { year: String(y) },
+  );
+
+  const map = new Map<string, number>();
+  for (const r of raw) map.set(r.team, r.rating);
+
+  srsCacheBySeason.set(y, { data: map, fetchedAt: now });
+  console.log(`[cfbd] Fetched ${map.size} SRS ratings for ${y}`);
+  return map;
+}
+
+// ─── Advanced Season Stats ──────────────────────────────────────────────────
+
+export async function getCFBDAdvancedStats(
+  season?: number,
+): Promise<
+  Array<{
+    team: string;
+    offense: Record<string, number>;
+    defense: Record<string, number>;
+  }>
+> {
+  const y = season ?? getCurrentCFBDSeason();
+  return fetchCFBD("/stats/season/advanced", { year: String(y) });
+}
+
+// ─── Sync All Advanced Stats to DB ──────────────────────────────────────────
+
+import { prisma } from "./db";
+
+export async function syncCFBDAdvancedStats(): Promise<void> {
+  const season = getCurrentCFBDSeason();
+
+  const [spRatings, elo, talent, ppa, srs] = await Promise.all([
+    getCFBDRatings(season),
+    getCFBDElo(season),
+    getCFBDTalent(season),
+    getCFBDPPA(season),
+    getCFBDSRS(season),
+  ]);
+
+  // Collect all team names across datasets
+  const allTeams = new Set<string>();
+  Array.from(spRatings.keys()).forEach((n) => allTeams.add(n));
+  Array.from(elo.keys()).forEach((n) => allTeams.add(n));
+  Array.from(talent.keys()).forEach((n) => allTeams.add(n));
+  Array.from(ppa.keys()).forEach((n) => allTeams.add(n));
+  Array.from(srs.keys()).forEach((n) => allTeams.add(n));
+
+  let upserted = 0;
+  for (const teamName of Array.from(allTeams)) {
+    // Find team in DB
+    const dbTeam = await prisma.team.findFirst({
+      where: { name: { equals: teamName, mode: "insensitive" } },
+    });
+    if (!dbTeam) continue;
+
+    const sp = spRatings.get(teamName);
+    const ppaData = ppa.get(teamName);
+
+    await prisma.nCAAFAdvancedStats.upsert({
+      where: { teamId_season: { teamId: dbTeam.id, season } },
+      create: {
+        teamId: dbTeam.id,
+        season,
+        spOverall: sp?.rating ?? null,
+        spOffense: sp?.offense?.rating ?? null,
+        spDefense: sp?.defense?.rating ?? null,
+        elo: elo.get(teamName) ?? null,
+        srs: srs.get(teamName) ?? null,
+        talentComposite: talent.get(teamName) ?? null,
+        ppaOverall: ppaData?.overall ?? null,
+        ppaPass: ppaData?.passing ?? null,
+        ppaRush: ppaData?.rushing ?? null,
+        ppaDef: ppaData?.defense ?? null,
+      },
+      update: {
+        spOverall: sp?.rating ?? null,
+        spOffense: sp?.offense?.rating ?? null,
+        spDefense: sp?.defense?.rating ?? null,
+        elo: elo.get(teamName) ?? null,
+        srs: srs.get(teamName) ?? null,
+        talentComposite: talent.get(teamName) ?? null,
+        ppaOverall: ppaData?.overall ?? null,
+        ppaPass: ppaData?.passing ?? null,
+        ppaRush: ppaData?.rushing ?? null,
+        ppaDef: ppaData?.defense ?? null,
+      },
+    });
+    upserted++;
+  }
+
+  console.log(`[cfbd] Synced ${upserted} NCAAFAdvancedStats rows for ${season}`);
 }
 
 // ─── Season Helper ──────────────────────────────────────────────────────────

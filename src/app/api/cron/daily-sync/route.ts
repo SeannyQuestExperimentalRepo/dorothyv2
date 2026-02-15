@@ -32,7 +32,20 @@ import type { Sport } from "@/lib/espn-api";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const SPORTS: Sport[] = ["NFL", "NCAAF", "NCAAMB"];
+const SPORTS: Sport[] = ["NFL", "NCAAF", "NCAAMB", "NBA"];
+
+async function isActiveSport(sport: string): Promise<boolean> {
+  const { prisma } = await import("@/lib/db");
+  const now = new Date();
+  const twoDaysOut = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+  const count = await prisma.upcomingGame.count({
+    where: {
+      sport: sport as Sport,
+      gameDate: { gte: now, lte: twoDaysOut },
+    },
+  });
+  return count > 0;
+}
 
 export async function POST(request: NextRequest) {
   // Verify cron secret (timing-safe, fail-closed)
@@ -345,6 +358,51 @@ export async function POST(request: NextRequest) {
       Sentry.captureException(err, { tags: { cronStep: "sp_enrich", sport: "NCAAF" } });
       console.error("[Cron] SP+ enrichment failed:", err);
       results.sp_enrich_NCAAF = { error: "Unknown error" };
+    }
+
+    // 2.8. New data source syncs
+    try {
+      // NBA stats (daily during NBA season)
+      if (await isActiveSport("NBA")) {
+        const { syncNBATeamStats } = await import("@/lib/nba-stats");
+        await syncNBATeamStats().catch(err => console.error("[Cron] NBA stats sync failed:", err));
+      }
+
+      // Barttorvik (daily during NCAAMB season)
+      if (SPORTS.includes("NCAAMB")) {
+        const { syncBarttovikRatings } = await import("@/lib/barttorvik");
+        await syncBarttovikRatings().catch(err => console.error("[Cron] Barttorvik sync failed:", err));
+      }
+
+      // Elo recalculation (daily, all active sports)
+      const { recalculateElo } = await import("@/lib/elo");
+      for (const sport of SPORTS) {
+        await recalculateElo(sport).catch(err => console.error(`[Cron] Elo recalc failed for ${sport}:`, err));
+      }
+
+      // Weather for upcoming outdoor games
+      const { fetchWeatherForUpcomingGames } = await import("@/lib/weather");
+      await fetchWeatherForUpcomingGames().catch(err => console.error("[Cron] Weather sync failed:", err));
+
+      // NFL EPA (weekly on Monday during NFL season)
+      const today = new Date();
+      if (today.getUTCDay() === 1 && SPORTS.includes("NFL")) {
+        const { syncNFLTeamEPA } = await import("@/lib/nflverse");
+        await syncNFLTeamEPA().catch(err => console.error("[Cron] NFL EPA sync failed:", err));
+      }
+
+      // CFBD expanded (weekly on Sunday during NCAAF season)
+      if (today.getUTCDay() === 0 && SPORTS.includes("NCAAF")) {
+        const { syncCFBDAdvancedStats } = await import("@/lib/cfbd");
+        await syncCFBDAdvancedStats().catch(err => console.error("[Cron] CFBD advanced sync failed:", err));
+      }
+
+      results.newDataSources = { success: true };
+      console.log("[Cron] New data source syncs completed");
+    } catch (err) {
+      Sentry.captureException(err, { tags: { cronStep: "new_data_sources" } });
+      console.error("[Cron] New data source syncs failed:", err);
+      results.newDataSources = { error: "Unknown error" };
     }
 
     // 3. Pre-generate today's daily picks for all sports
