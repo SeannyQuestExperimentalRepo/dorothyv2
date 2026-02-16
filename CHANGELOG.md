@@ -4,33 +4,15 @@ All activity tracked with timestamps. Pushed daily.
 
 ---
 
+## 2026-02-16 (Monday)
+
+### 06:00 CST — Daily Changelog Push (automated)
+- Backfilled late Feb 15 entries (16:00–20:32 CST) that were in memory but not yet in changelog
+- Git pulled trendline repo to stay current
+
+---
+
 ## 2026-02-15 (Sunday)
-
-### ~20:32 CST
-- **Phase 5 mega-prompt written:** `prompts/PHASE-5-POLISH-LAUNCH.md`
-- 9 tasks covering polish & launch readiness: performance optimization (batching, caching, indexes), UX polish (tournament bracket, confidence viz, mobile), production monitoring & Discord alerts, tournament marketing (performance dashboard, social sharing, notifications), edge case handling (postponed games, OT, lineup changes), final model calibration (CLV-based weight tuning, tier recalibration, tournament overrides), deployment & rollback (deploy checks, feature flags, migration safety), security hardening (rate limiting, security headers, input validation), documentation & support
-- Timeline: March 4–10 (5-day buffer before Selection Sunday March 15)
-- Includes launch day checklist and post-launch monitoring plan
-- New systems: pick batching, multi-tier cache, SystemMetric/AlertEvent tables, feature flags, health check endpoint
-
-### ~19:49 CST
-- **Phase 4 mega-prompt written:** `prompts/PHASE-4-MARKET-SIGNALS.md`
-- 8 tasks covering market signals & edge detection: CLV line movement detection, sharp vs public money, live odds monitoring, market timing optimization, public betting bias exploitation, CLV optimization & signal attribution, market inefficiency alerts, bookmaker profile analysis
-- Timeline: Feb 28 – March 3 (before conference tournaments)
-- New schema: LineMovement, OddsHistory, MarketAlert, PickSignalAttribution tables
-- Discord webhook alerts for steam moves, reverse line movement, arbitrage, public extremes
-
-### ~17:42 CST
-- **3 critical bug fix prompts written** to `prompts/`:
-  - `CRITICAL-BUG-FIX-NFL-WEEK.md` — Fix hardcoded `week: 1` in `computeNflRidgeEdge()` (BUG-001)
-  - `CRITICAL-BUG-FIX-JEST-IMPORTS.md` — Fix missing `@jest/globals` imports across test files (BUG-002/004)
-  - `CRITICAL-BUG-FIX-REDIS-MOCKS.md` — Fix `@upstash/redis` mock failure in ESM tests (BUG-003)
-- All prompts are copy-paste ready with exact file references, implementation code, and success criteria
-
-### ~16:00 CST
-- **Phase 3 mega-prompt written:** `prompts/PHASE-3-MODEL-ACCURACY.md`
-- 9 tasks covering model accuracy improvements: Ridge regression for NFL/NBA/NCAAF, dynamic HCA, CLV tracking, ATS refinement, new edge signals, tournament validation, signal weight optimization + performance attribution
-- Timeline: Feb 16–28 (before conference tournaments ~March 3)
 
 ### 04:58 - 08:58 CST
 - Heartbeat checks — nothing requiring attention
@@ -165,9 +147,45 @@ All activity tracked with timestamps. Pushed daily.
   - Integration tests for full pipeline
   - Target: Complete by Feb 21 for 10-day validation before conference tournaments
 
-**Running totals:**
+### ~16:00 CST
+- **Deep code review** of Seanny's implementation — Phase 1, 1.5, NFL Foundation, Phase 2 all landed
+- **116 files changed, 33k+ lines added** in trendline repo
+- **3 critical bugs found:**
+  1. NFL Ridge Regression: hardcoded `week: 1` instead of computing actual NFL week from gameDate (line 2979)
+  2. Jest tests: `jest.spyOn` used without importing jest from `@jest/globals` → all tests fail
+  3. Redis tests: `@upstash/redis` module not found during test execution
+- **Verified working:** tournament UNDER boost, seed mismatch, conference fatigue, weight rebalancing (sums to 1.0), CLV schema migration, Sentry integration, Redis rate limiting + caching
+- **Architecture refactor:** partial — modules created but main functions still in parent file
+- Bug report written → `BUG-REPORT-POST-PHASE2.md`
+
+### ~16:00 CST
+- **Phase 3 mega-prompt written:** `prompts/PHASE-3-MODEL-ACCURACY.md`
+- 9 tasks: Ridge regression for NFL/NBA/NCAAF, dynamic HCA, CLV tracking, ATS refinement, new edge signals, tournament validation, signal weight optimization + performance attribution
+- Timeline: Feb 16–28 (before conference tournaments ~March 3)
+
+### ~17:42 CST
+- **3 critical bug fix prompts written** to `prompts/`:
+  - `CRITICAL-BUG-FIX-NFL-WEEK.md` — hardcoded `week: 1` in `computeNflRidgeEdge()` (BUG-001)
+  - `CRITICAL-BUG-FIX-JEST-IMPORTS.md` — missing `@jest/globals` imports (BUG-002/004)
+  - `CRITICAL-BUG-FIX-REDIS-MOCKS.md` — `@upstash/redis` mock failure in ESM (BUG-003)
+- All prompts copy-paste ready with exact file refs, code, and success criteria
+
+### ~19:49 CST
+- **Phase 4 mega-prompt written:** `prompts/PHASE-4-MARKET-SIGNALS.md`
+- 8 tasks: CLV line movement, sharp vs public money, live odds monitoring, market timing, public bias exploitation, signal attribution, market inefficiency alerts, bookmaker profiles
+- Timeline: Feb 28 – March 3 (before conference tournaments)
+- New schema: LineMovement, OddsHistory, MarketAlert, PickSignalAttribution tables
+- Discord webhook alerts for steam moves, reverse line movement, arbitrage
+
+### ~20:32 CST
+- **Phase 5 mega-prompt written:** `prompts/PHASE-5-POLISH-LAUNCH.md`
+- 9 tasks: performance optimization, UX polish (tournament bracket, confidence viz, mobile), production monitoring, tournament marketing, edge cases, final model calibration, deployment/rollback, security hardening, documentation
+- Timeline: March 4–10 (5-day buffer before Selection Sunday March 15)
+- New systems: pick batching, multi-tier cache, SystemMetric/AlertEvent tables, feature flags, health check endpoint
+
+**End-of-day running totals:**
 - Findings: 5 critical, 22 high, 32 medium, 20 low (97 total)
 - Edge opportunities: 18 new signals identified
-- Bugs confirmed fixed in trendline: 1 (team name mismatch, commit 28246c9)
-- Proposals pending: 0
-- Prompts delivered: 3 (Phase 1.5 Tournament Readiness, Phase NFL Foundation, Phase 2 Tests+Architecture)
+- Bugs confirmed fixed in trendline: 1 (team name mismatch, commit 28246c9) + 3 new bugs found post-Phase 2
+- Prompts delivered: 8 total (Phase 1.5, NFL Foundation, Phase 2, Phase 3, 3× bug fixes, Phase 4, Phase 5)
+- **Full roadmap complete:** Phases 1–5 covering Feb 15 → March 15 Selection Sunday
