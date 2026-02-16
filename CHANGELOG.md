@@ -6,6 +6,13 @@ All activity tracked with timestamps. Pushed daily.
 
 ## 2026-02-15 (Sunday)
 
+### ~19:49 CST
+- **Phase 4 mega-prompt written:** `prompts/PHASE-4-MARKET-SIGNALS.md`
+- 8 tasks covering market signals & edge detection: CLV line movement detection, sharp vs public money, live odds monitoring, market timing optimization, public betting bias exploitation, CLV optimization & signal attribution, market inefficiency alerts, bookmaker profile analysis
+- Timeline: Feb 28 – March 3 (before conference tournaments)
+- New schema: LineMovement, OddsHistory, MarketAlert, PickSignalAttribution tables
+- Discord webhook alerts for steam moves, reverse line movement, arbitrage, public extremes
+
 ### ~17:42 CST
 - **3 critical bug fix prompts written** to `prompts/`:
   - `CRITICAL-BUG-FIX-NFL-WEEK.md` — Fix hardcoded `week: 1` in `computeNflRidgeEdge()` (BUG-001)
