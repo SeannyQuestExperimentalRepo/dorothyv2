@@ -4,6 +4,75 @@ All activity tracked with timestamps. Pushed daily.
 
 ---
 
+## 2026-02-17 (Tuesday)
+
+### 06:00 CST — Daily Changelog Push (automated)
+- Backfilled full Feb 16 activity (massive code health sprint + beta launch progress)
+- Git pulled trendline repo to stay current
+
+---
+
+## 2026-02-16 (Monday) — Massive Code Health Sprint + Beta Launch
+
+### All Day — Trendline Code Health Sprint (24 tasks across 6 sprint prompts)
+- Seanny ran external coding agent; Dorothy wrote all prompts and verified between each push
+- **Pick engine split:** 4,463-line monolith → 1,192-line orchestrator + 9 modules (signals-spread, signals-ou, model-edge, convergence, grading, injuries, props, config, types)
+- **NBA fully wired:** reverse lookup (9 templates), daily-sync, sync-odds, weight allocation (0.10 trendAngles)
+- **Tournament logic hardened:** config-driven dates 2024–2027, DB fallback, ±1 day tolerance, 550-line test suite
+- **Dead code removed:** 6 unused modules + 44 .bak files (22,612 lines)
+- **Ridge coefficients externalized:** `config/model-coefficients.json` with loader + fallback
+- **Cron schedules expanded:** 3→12 jobs (closing lines 4×, odds monitor 3×, sync-odds 2×, daily-sync 3×)
+- **Rate limiter consolidated:** in-memory deleted, Redis-only with fail-open
+- **CI added:** `.github/workflows/ci.yml` (tsc + jest) + `validate-deployment.yml` (daily + on push)
+- **New scripts:** retrain-ridge.ts, check-fusion-performance.ts, audit-nba-signals.ts, rollout-check.ts, test.sh
+- **Error boundaries** for 4 pages, **loading states** for 7 pages, **PWA manifest** updated for NBA
+- **New test suites:** model-edge, signals-spread, signals-ou, signal-fusion, confidence-calibrator
+- **Docs:** v16-rollout-plan.md, ci-setup.md, next15-upgrade-plan.md, config/README.md, backtest/README.md
+- **End-of-sprint stats:** 262 source files, 50,971 LOC, 18 test suites (300 tests), 52 API routes, 23 pages
+
+### Evening — Beta Launch Roadmap Progress
+- **Team logos** via ESPN CDN: `src/lib/team-logos.ts` (532 lines) + component, wired into 4 components
+- **Discord webhook** env var consolidated to `DISCORD_ALERT_WEBHOOK_URL`
+- **Auth imports** fixed: all routes using `import { auth } from "@/lib/auth-helpers"`
+- **32 console.logs** removed from app/components
+- **Phase 0 (Security):** `.env.production` deleted from repo, Google OAuth + site password rotated
+- **Phase 1 (Infrastructure):** Redis health check, cron monitoring script, daily email digest cron
+- **Bets/stats API** restored (242 lines)
+- **Error handling** added to 7 API routes (try/catch + trackError)
+- **Rate limiting** added to gate + picks/recap
+- **Zod validation** added to 4 API routes
+- **Phase 2 (Beta UX):** InviteCode model, invite validation API, admin invite CRUD, signup with invite codes, onboarding page (3-step flow), middleware redirect, completion endpoint, migration SQL
+- **v16 flags seeded in Neon** — all 5 created disabled
+- **`enable_signal_fusion` enabled** in prod (Phase 1 rollout, weight 0.0)
+- **`rollout-check.ts`** + **`v16-launch.sh`** scripts created
+- **Tests:** 310→324 passing across 21+ suites
+
+### Evening — Phase 3 Code Pulled (commit 878adf6)
+- PickFeedback + Feedback Prisma models added
+- Feedback widget, admin dashboard enhancements, Discord auto-posting, health-ping cron
+- **BLOCKER:** Need `npx prisma generate` + migration SQL against Neon
+- Neon serverless adapter (`@prisma/adapter-neon`) added to `src/lib/db.ts`
+- **End-of-day stats:** 271+ files, 52K+ LOC, 72 lib modules, 53 API routes, 23 pages, 13 cron entries
+
+### Pending Migrations (manual)
+1. `prisma/migrations/20260216_add_invite_codes_and_onboarding/migration.sql`
+2. `prisma/migrations/manual/add-pick-feedback.sql`
+3. `prisma/migrations/manual/add-feedback-table.sql`
+
+### v16 Feature Flags Status
+- `enable_signal_fusion` — ✅ ENABLED (weight 0.0, confidence boost only)
+- `enable_market_intelligence` — ⏳ disabled (enable second)
+- `optimize_weights_via_clv` — ⏳ disabled (enable third)
+- `dynamic_confidence_calibration` — ⏳ disabled (NCAAMB only, enable fourth)
+- `march_madness_logic` — ⏳ disabled (enable before March 1)
+
+### Decisions Made
+- Next.js upgrade: skip 15, go directly to 16 AFTER March Madness (late April)
+- Node/Bun: default `node` in PATH is Bun shim — real Node at `/snap/bin/node` for jest/tsc
+- UI concepts: 5 HTML mockups built in `/workspace/trendline-ui-concepts/`
+
+---
+
 ## 2026-02-16 (Monday)
 
 ### 06:00 CST — Daily Changelog Push (automated)
