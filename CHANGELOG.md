@@ -4,6 +4,17 @@ All activity tracked with timestamps. Pushed daily.
 
 ---
 
+## 2026-02-18 (Wednesday)
+
+### 06:00 CST — Daily Changelog Push (automated)
+- No new development activity logged for Feb 17–18
+- Trendline repo pulled to stay current
+- Phase 3 blockers still pending: `npx prisma generate` + migration SQL against Neon
+- v16 flags status: `enable_signal_fusion` enabled (weight 0.0), remaining 4 flags still disabled
+- Next priority: run pending Prisma migrations, enable remaining v16 flags incrementally
+
+---
+
 ## 2026-02-17 (Tuesday)
 
 ### 06:00 CST — Daily Changelog Push (automated)
