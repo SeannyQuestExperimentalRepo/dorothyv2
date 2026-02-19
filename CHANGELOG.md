@@ -4,14 +4,103 @@ All activity tracked with timestamps. Pushed daily.
 
 ---
 
-## 2026-02-18 (Wednesday)
+## 2026-02-19 (Thursday)
 
 ### 06:00 CST — Daily Changelog Push (automated)
-- No new development activity logged for Feb 17–18
+- Massive engine-v17 sprint logged below from Feb 18
 - Trendline repo pulled to stay current
-- Phase 3 blockers still pending: `npx prisma generate` + migration SQL against Neon
-- v16 flags status: `enable_signal_fusion` enabled (weight 0.0), remaining 4 flags still disabled
-- Next priority: run pending Prisma migrations, enable remaining v16 flags incrementally
+
+---
+
+## 2026-02-18 (Wednesday) — Engine V17 Sprint
+
+### All Day — Deep Engine Analysis + Rewrite (engine-v17 branch)
+- Read every file in pick-engine (5,211 lines), all Ridge models, CLV engine, signal fusion, convergence scoring, backtests
+- Wrote comprehensive improvement plan → `trendline-engine-improvement-plan.md`
+- Got push access to trendline repo, started executing on engine-v17 branch
+
+### ~Morning CST — Training & New Signals
+- `6c1b798` — fix(nba-ridge): compute actual rest days (was hardcoded to 1)
+- `389c4b8` — feat: NBA Ridge training script
+- `983ca22` — feat: cross-market spread↔total correlation signal (new signal, fully wired)
+- `098233b` — feat: NCAAMB spread logistic training script
+- `d8dfff3` — feat: NCAAMB O/U v2 training script (10 features)
+- `f465108` — feat: NFL Ridge training script (needs EPA data)
+- `f0b0f0b` — Updated NCAAMB O/U coefficients (65.0% OOS, up from 62.8%) + spread logistic coefficients
+- `3b1dacc` — feat: NFL Ridge v2 (Elo + rolling avgs)
+- Created 4 training scripts: train-nba-ridge.ts, train-nfl-ridge.ts, train-ncaamb-spread.ts, train-ncaamb-ou-v2.ts
+
+### Training Results (validated on real data)
+- **NCAAMB O/U Ridge (66,776 games):** 65.0% OOS accuracy (lambda 5000). V2 with 10 features scored 64.87% — more features = noise
+- **NCAAMB Spread Logistic (66,163 games):** 53.08% raw → **57.3% at p≥55%, 59.0% at p≥56% (+12.7% ROI), 59.8% at p≥58%**. Edge is real but only when selective.
+- **NFL Ridge v2:** Can't beat the spread (MAE 10.23 vs market 9.84). EPA contributes nothing — all edge from Elo.
+- **NBA:** Only 4 games in DB, can't train. Needs full backfill.
+
+### ~Afternoon CST — Key Decisions
+- NCAAMB is the money sport — only one with validated edge
+- More features ≠ better model (proven empirically)
+- Selectivity is where the edge lives (53% raw → 59% at high threshold)
+- NFL/NBA need data pipelines before models can work
+- DB credentials updated from stale ep-soft-lab to ep-patient-sea
+
+### ~Evening CST — Wiring Models + Data Backfills (~25 commits on engine-v17)
+- `0b34859` — Spread logistic wired into generator, config weight 0.12, budget-neutral rebalance
+- `06699e2` — Line movement confidence adjustment (1.15–1.25x when model agrees, 0.80–0.90x disagree)
+- `3306666` — NFL EPA backfill: 2,723 rows across 2020–2024
+- `59ca4b2` — NCAAF Ridge trained: 51.7% ATS, 54.3% O/U (6,104 games)
+- `5f3460b` — All v16 feature flags enabled
+- `dfef288` — DST detection bug fix (Intl.DateTimeFormat replaces getTimezoneOffset)
+
+### ~Evening CST — NFL Model Validated
+- **68.3% ATS** multi-season walk-forward (2022=63.6%, 2023=71.0%, 2024=68.7%, 778 games)
+- Feature ablation: EPA contributes nothing; all edge from Elo ratings
+- Could simplify to 2-feature model (Elo + spread)
+- 51.6% O/U (not useful)
+- Full validation: `config/nfl-model-validation.json`
+
+### ~Evening CST — NBA Data Backfill
+- 6,422 real games from official NBA API (nba_api Python), seasons 2020–2025
+- 1,241 NBATeamStats records (30 teams × 5 seasons)
+- 900 synthetic/fake games removed
+- PIT retrain with rolling 15-game window: 64.1% "spread accuracy" BUT eval is broken
+
+### NBA Model Status — BROKEN
+- "Spread accuracy" measures who wins, not ATS (wrong metric)
+- NBAGame has NO Vegas odds (spread/overUnder all NULL)
+- OddsHistory has 372 spread + 744 total records — need join by date+team
+- O/U model disabled (40.3% = actively harmful)
+
+### ~Late Evening CST — Slack Bot Setup (in progress)
+- Bot token (xoxb-) and app token (xapp-) saved
+- **BOTH COMPROMISED** — pasted in Discord, needs rotation
+- Gateway config.patch failing with schema validation error — still debugging
+
+### Bug Fixes
+- evaluate-lines expiry buffer 5h→8h in manager.ts
+- gameDate switched from UTC to US Eastern in generator.ts
+- DST detection fixed (server TZ always 0 on Vercel)
+
+### Model Accuracy Scoreboard (end of day)
+| Sport | ATS | O/U | Status |
+|-------|-----|-----|--------|
+| NFL | 68.3% ✅ | 51.6% | Validated, Elo-driven |
+| NCAAMB | 59% @p≥.56 ✅ | 65% ✅ | Crown jewel |
+| NBA | Unknown | Unknown | Eval broken, no odds |
+| NCAAF | 51.7% | 54.3% | Unvalidated |
+
+### Beta Launch Target
+- **March 10, 2026** — 20 users, 3-week sprint (Feb 19 – Mar 9)
+
+### New Files
+- `src/lib/pick-engine/spread-logistic.ts`, `line-movement.ts`, `signals-cross-market.ts`
+- `scripts/validate-nfl-model.ts`, `backfill-nfl-epa.ts`, `backfill-nba-batch.py`, `backfill-nba-team-stats.py`, `backfill-nba-official.py`, `train-nba-simple.ts`
+
+### Next Steps
+1. Fix Slack config (schema mismatch) + rotate compromised creds
+2. Fix NBA model (link OddsHistory → NBAGame, fix eval metrics)
+3. Consider NFL 2-feature simplification
+4. Week 2: Ensemble stacking, confidence intervals
+5. Week 3: March Madness tuning, UI polish, load test, beta
 
 ---
 
