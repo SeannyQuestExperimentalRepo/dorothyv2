@@ -4,7 +4,56 @@ All activity tracked with timestamps. Pushed daily.
 
 ---
 
+## 2026-02-20 (Friday)
+
+### 06:00 CST — Daily Changelog Push (automated)
+- No new development activity in the last 24h
+- Previous day's major events logged below (Feb 19)
+- Trendline repo pulled to stay current
+
+---
+
 ## 2026-02-19 (Thursday)
+
+### ~Morning CST — Betting Engine Post-Mortem
+- Seanny confronted Dorothy with evidence: NCAAMB O/U backtest claimed 65% accuracy (66,776 games), live season hit 49.9% (coin flip). Spread: 49.4%.
+- Root cause: likely look-ahead bias in backtests (using same-day KenPom data instead of point-in-time snapshots)
+- 2 weeks of development invalidated. Hundreds in API costs lost.
+- **Decision:** Engine on `engine-v17` branch effectively shelved. Seanny stepping back from AI-assisted betting.
+- Updated SOUL.md with anti-sycophancy as rule #1
+- Updated USER.md with full failure context for future sessions
+- Created MEMORY.md with detailed post-mortem
+
+### ~Afternoon–Evening CST — Mission Control Dashboard (Full Build)
+
+#### Phase 0: Multi-Agent Gateway Config
+- Updated `~/.openclaw/openclaw.json` with 11 agents (main/Dorothy + foreman + 9 specialists)
+- Enabled `/v1/chat/completions` HTTP API for dashboard→foreman communication
+- Unlocked `sessions_spawn`, `sessions_send`, `sessions_history` over HTTP `/tools/invoke`
+- Created 10 agent workspaces (`~/.openclaw/workspace-{agent}/`) each with AGENTS.md + SOUL.md
+- Agent roster: foreman (Opus), frontend/backend/qa/researcher/writer/devops/data (Sonnet), architect/math (Opus)
+- Verified: spawning works, chat completions work, agents respond in character
+
+#### Dashboard v1 Built & Deployed
+- Sub-agent built dashboard in ~6 min (session `24b706d7`)
+- Fixed: `(dashboard)` route group leftovers, `AgentInfo`/`Agent` type mismatch, missing root `page.tsx`
+- Fixed transcript loading — `content` is array of content blocks, not string
+- Deployed to Vercel: `https://mission-control-alpha-lime.vercel.app`
+- Four views: Command Center, Production Line (kanban), Sessions, System
+
+#### Research & v2 Planning
+- Researched 6 reference projects: Danm72, ClawDeck, abhi1693, Jon Tsai, Medium article
+- Wrote v2 rebuild prompt at `mission-control/REBUILD-PROMPT.md` (27KB)
+- Retrowave/synthwave aesthetic chosen (neon pink/cyan/purple, Orbitron font, glow effects)
+- 5 views planned: Command Center, Production Line, Sessions, System, Agent Profiles
+- Agent profiles with codenames, skill bars, personality, cost tiers
+- Seanny approved prompt, not yet executed
+
+#### Key Technical Learnings
+- `sessions_spawn`/`sessions_send` hard-denied on `/tools/invoke` by default — needs `gateway.tools.allow`
+- `agents_list` resolves to requesting agent — HTTP = main, so main needs `allowAgents`
+- Tool invoke uses `args` not `params` in request body
+- Sub-agents cannot spawn sub-agents (no nesting)
 
 ### 06:00 CST — Daily Changelog Push (automated)
 - Massive engine-v17 sprint logged below from Feb 18
