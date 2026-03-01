@@ -4,6 +4,52 @@ All activity tracked with timestamps. Pushed daily.
 
 ---
 
+## 2026-03-01 (Sunday)
+
+### ~10:20 PM (Feb 28) — Political Influence Tracker: UI Overhaul
+- Phase 1 agent: Design system, sidebar, dashboard, companies grid, party-trends analysis
+- Phase 2 agent: Company detail (tabbed), 5 analysis pages, compare, research, network, skeleton/empty states
+- ~5,300 lines changed across all frontend files
+- Glassmorphism cards, gradient text, animated hover effects, rank badges
+- Build passed, pushed to Vercel
+
+### Overnight — Data Fills (political-influence)
+- **pac_contributions: 0 → 45,340** (FEC Schedule B disbursements for all 125 PACs)
+- **board_members: 0 → 11,430** (Wikipedia scrape across 90 companies)
+- **state_contributions: 0 → 12,125** (WA: 10,631, IA: 1,301, HI: 170, TX: 23)
+- **state_legislators: 478 → 5,381** (OpenStates full 50-state pull)
+- **epa_enforcement: 0 → 550** (EPA ECHO, limited by API 500s)
+- **state_lobbying: 0 → 240** (derived from federal LDA filings)
+- **donation_legislator_links: 0 → 41** (cross-referenced donations to legislators)
+- **foreign_agent_registrations: 0 → 5** (FARA bulk CSV — sparse for US domestic companies)
+
+### Overnight — Dead Ends Documented
+- political_ads: Google moved to BigQuery only, Meta has no public API
+- FARA API: all endpoints return 404 (bulk CSV works but irrelevant for domestic companies)
+- EPA ECHO primary endpoint: HTTP 500s; alt endpoint returns 197K records causing OOM
+- Illinois Sunshine API: 404. Florida: 403. TX Ethics bulk CSVs: 404
+- CA bulk download: 1.5GB — too large for overnight processing
+
+### Overnight — Still Running at Log Time
+- OpenStates bills search (tidal-bison) — rate-limited, searching by industry terms across 50 states
+- FEC individual contributions — stopped at company 69/90 (API cap duplicates)
+
+### ~12:30 AM — BUILDER.md Created
+- Seanny provided personal builder philosophy document
+- Saved as BUILDER.md in workspace root, added to AGENTS.md session startup checklist
+- Key themes: skepticism as feature, working > clever, production is only truth
+
+### ~1:00 AM — Data Export + Deploy
+- Re-exported data.json with new fields (board_members, pac_contributions, epa_actions, state_contributions, lobbying, irs_990, gov_contracts, legislator_links)
+- Build passed, pushed to Vercel
+
+### 06:00 CST — Daily Changelog Push (automated)
+- Massive data fill overnight — 8 tables populated from zero
+- Political Influence Tracker UI overhauled with glassmorphism design system
+- Trendline repo pulled to stay current
+
+---
+
 ## 2026-02-28 (Saturday)
 
 ### 06:00 CST — Daily Changelog Push (automated)
