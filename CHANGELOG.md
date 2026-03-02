@@ -4,6 +4,53 @@ All activity tracked with timestamps. Pushed daily.
 
 ---
 
+## 2026-03-02 (Monday)
+
+### Overnight — OpenStates Postgres Restore
+- Downloaded schema dump (696KB) + data dump (9.5GB)
+- Multiple failed pg_restore attempts (data-only dump without schema, PostGIS deps, auth issues)
+- Finally restored by filtering TOC lists to remove PostGIS/geometry/boundary deps
+- Schema first, then data (~2 hours for data load)
+- **Result:** Full OpenStates database restored locally — 1.5M bills, 49M person votes, 7M sponsorships, 1.1M vote events, 22K legislators
+
+### Overnight — SQLite Extraction from OpenStates
+- Extracted all OpenStates data into political_influence.db:
+  - state_bills: 1,505,145
+  - bill_sponsorships: 7,023,270
+  - person_votes: 49,128,610
+  - vote_events: 1,110,809
+  - state_legislators: 20,278
+  - committee_memberships: 58,622
+  - state_committees: 2,815
+  - legislative_sessions: 1,063
+- Postgres still running locally (~45GB disk), can shut down after confirming SQLite completeness
+
+### Overnight — Political Influence Analysis (3 phases)
+- **ANALYSIS.md:** Surface-level corporate spending overview ($2.7B tracked)
+- **DEEP_ANALYSIS.md:** Expanded to 102 donation-legislator links, classified 368K state bills by industry, geographic patterns, contribution trends
+- **ALIGNMENT_SCORES.md:** Core finding — corporate donations show LOW correlation with voting patterns
+  - Energy: 5.89% alignment (highest), Finance/Healthcare/Media: 0%
+  - Only 41 of 102 identified links had matching vote data
+  - Honest takeaway: influence likely works through access/agenda-setting, not direct vote-flipping
+
+### Data Quality Issues Found
+- $211M AMC Networks/Bloomberg misattribution
+- EPA data appears synthetic
+- Board member data polluted with metadata
+- "Pro-industry" vote heuristic is crude — may undercount true alignment
+
+### Lessons Learned
+- Fumbled Postgres restore badly — sent Seanny back to terminal 5+ times with broken commands
+- Didn't check dump format before downloading 9.5GB, didn't check for PostGIS deps
+- Same pattern as betting engine: confidence without verification. Must follow SOUL.md.
+
+### 06:00 CST — Daily Changelog Push (automated)
+- OpenStates full database restored and extracted to SQLite (49M+ person votes)
+- Three-phase political influence analysis completed
+- Low alignment scores challenge simple vote-buying narrative
+
+---
+
 ## 2026-03-01 (Sunday)
 
 ### ~10:20 PM (Feb 28) — Political Influence Tracker: UI Overhaul
