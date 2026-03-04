@@ -4,6 +4,54 @@ All activity tracked with timestamps. Pushed daily.
 
 ---
 
+## 2026-03-04 (Wednesday)
+
+### 06:00 CST — Daily Changelog Push (automated)
+
+#### Political Influence — Data Cleanup & Validation (March 3)
+- Ran deep analysis sub-agent → produced DEEP_ANALYSIS.md
+- Ran data cleanup sub-agent → **removed $5.5B in garbage data**
+  - AMC Networks: Soros/Bloomberg/Mercer misattributed (FEC fuzzy search for "AMC" pulled unrelated mega-donors)
+  - Bloomberg LP: Biden Victory Fund misattributed ($266M)
+  - 4,721 zero-amount contributions removed
+  - Database corrected: $5.6B → $91.2M in real contributions (1,584 individuals, 31,078 contributions)
+
+#### Political Influence — Data Fill Attempts (March 3)
+- **Lobbying spend**: Aggregated from lobbying_filings → 26 → 71 of 90 companies covered
+- **USASpending contracts**: Reran with correct schema (award_amount not amount). 64/90 companies, 4,683 records
+- **FEC independent expenditures**: Only 4 new records (38 total) — most PACs don't do independent expenditures
+- **State contributions (Socrata)**: 0 new records — most state dataset IDs stale or missing employer fields
+- **FollowTheMoney API**: Seanny provided API key. API alive but unusable for bulk — employer queries hang 20+ seconds and return empty
+
+#### Political Influence — Current Dataset Status (March 3)
+- ✅ Individual contributions: 31K records, clean ($91M)
+- ✅ PAC contributions: 45K records ($211M)
+- ✅ Lobbying: 71/90 companies ($418M via lobbying_filings)
+- ✅ Government contracts: 64/90 companies (4,683 records)
+- ✅ OpenStates: 49M votes, 1.5M bills, 7M sponsorships
+- 🟡 State contributions: 4 states only (WA dominates at 99%)
+- ❌ FollowTheMoney API too slow for bulk pulls
+
+#### Key Analytical Findings (March 3)
+- Lobbying dominates at $418M (67% of real spending)
+- Energy PACs 85-97% Republican; tech PACs more bipartisan
+- Tech/media employees 95-100% Democratic (opposite to their PACs)
+- Amazon, Meta, Comcast top lobbying spenders ($39M, $38M, $28M)
+- Healthcare companies show 400-600:1 ROI on contracts vs spending
+- Centene leads government contracts at $3.8B
+
+---
+
+## 2026-03-03 (Tuesday)
+
+### 06:00 CST — Daily Changelog Push (automated)
+- No new development activity in the last 24 hours
+- Political influence project data pipeline and analysis from March 1-2 remains the latest work
+- OpenStates Postgres instance still running locally (~45GB); pending shutdown decision after SQLite verification
+- Seanny's 7:30 AM update on alignment scores was the last scheduled item (March 2)
+
+---
+
 ## 2026-03-02 (Monday)
 
 ### Overnight — OpenStates Postgres Restore
